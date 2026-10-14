@@ -20,22 +20,18 @@ Local AI Control Center is een lokaal draaiend dashboard voor Ollama. Je kunt ge
 - Engelse en Nederlandse interface; de gekozen taal wordt lokaal onthouden
 - Markdown-opmaak voor antwoorden, waaronder lijsten, tabellen en codeblokken
 
-## Screenshots
+## Sneltoetsen
 
-<table>
-  <tr>
-    <td><strong>Dashboard</strong><br><img src="screenshots/dashboard.png" alt="Dashboard van Local AI Control Center" width="400"></td>
-    <td><strong>Document Q&amp;A</strong><br><img src="screenshots/DocumentQA.png" alt="Scherm voor vragen over documenten" width="400"></td>
-  </tr>
-  <tr>
-    <td><strong>Prompt-speeltuin — 1</strong><br><img src="screenshots/playground-1.png" alt="Vergelijking in de Prompt-speeltuin" width="400"></td>
-    <td><strong>Prompt-speeltuin — 2</strong><br><img src="screenshots/playground-2.png" alt="Resultaten van de Prompt-speeltuin" width="400"></td>
-  </tr>
-  <tr>
-    <td><strong>Code-uitlegger — 1</strong><br><img src="screenshots/Codeexplainer-1.png" alt="Scherm van de code-uitlegger" width="400"></td>
-    <td><strong>Code-uitlegger — 2</strong><br><img src="screenshots/Codeexplainer-2.png" alt="Antwoord van de code-uitlegger" width="400"></td>
-  </tr>
-</table>
+| Sneltoets | Actie |
+| --- | --- |
+| `/` | Open het gesprekkenmenu en focus het zoekveld |
+| `⌘ K` / `Ctrl K` | Nieuw gesprek starten |
+| `↑` / `↓` | Verplaats de markering door de gesprekkenlijst |
+| `Home` / `End` | Naar het eerste / laatste gesprek springen |
+| `Enter` | Het gemarkeerde gesprek openen |
+| `Esc` | Het gesprekkenmenu of modelkiezer sluiten |
+
+In de gesprekkenlijst volgt de markering ook de muis. Sneltoets-hints verschijnen wanneer je over een element gaat of het focus geeft.
 
 ## Techniek en architectuur
 
@@ -70,7 +66,6 @@ Mijn verantwoordelijkheden waren:
 - de gegenereerde implementatie beoordelen en corrigeren
 - problemen tijdens de ontwikkeling opsporen en oplossen
 - de Git/GitHub-werkwijze en projectdocumentatie opzetten
-
 
 ## Installatie
 
@@ -177,5 +172,4 @@ npm run build
 backend/    FastAPI-API, Ollama-client, SQLite-schema en pytest-tests
             pyproject.toml en uv.lock beheren de Python-omgeving
 frontend/   React- en Vite-applicatie
-screenshots/ Afbeeldingen die in deze README worden getoond
 ```

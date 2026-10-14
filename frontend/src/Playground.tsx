@@ -87,8 +87,7 @@ export default function Playground({
           <p>{t("compareDescription")}</p>
         </div>
         <div className="play-orb">
-          <Cpu size={21} />
-          <span />
+          <Cpu size={20} />
         </div>
       </div>
       <div className="playground-controls">

@@ -3,18 +3,18 @@ import {
   Activity,
   Check,
   ChevronDown,
-  Command,
   Cpu,
   BookOpen,
   Braces,
-  Menu,
   MessageSquare,
-  MoreHorizontal,
+  Moon,
   Pencil,
   Plus,
   Search,
   Send,
+  ShieldCheck,
   Sparkles,
+  Sun,
   Trash2,
   X,
   Zap,
@@ -50,6 +50,17 @@ export default function App() {
       return "en";
     }
   });
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    try {
+      const saved = localStorage.getItem("lacc-theme");
+      if (saved === "dark" || saved === "light") return saved;
+    } catch {
+      /* Use the system preference below. */
+    }
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  });
   const t = (key: MessageKey) => messages[language][key];
   const [status, setStatus] = useState<OllamaStatus | null>(null);
   const [models, setModels] = useState<Model[]>([]);
@@ -68,7 +79,9 @@ export default function App() {
   const [error, setError] = useState("");
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameText, setRenameText] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [highlighted, setHighlighted] = useState(-1);
+  const [scrolled, setScrolled] = useState(false);
   const [modelMenu, setModelMenu] = useState(false);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
@@ -82,6 +95,42 @@ export default function App() {
       // The selected language still applies for this session.
     }
   }, [language]);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    meta?.setAttribute("content", theme === "dark" ? "#0d1117" : "#ffffff");
+    try {
+      localStorage.setItem("lacc-theme", theme);
+    } catch {
+      // The selected theme still applies for this session.
+    }
+  }, [theme]);
+
+  useEffect(() => {
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const pending = () =>
+      document.querySelectorAll<HTMLElement>("[data-reveal]:not(.is-visible)");
+    if (reduced || !("IntersectionObserver" in window)) {
+      pending().forEach((el) => el.classList.add("is-visible"));
+      return;
+    }
+    document.documentElement.classList.add("motion-ready");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -6% 0px" },
+    );
+    pending().forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [view, active?.messages?.length]);
 
   const refresh = useCallback(async () => {
     try {
@@ -114,23 +163,81 @@ export default function App() {
         .catch(() => setActive(null));
   }, [active?.id]);
   useEffect(() => {
+    function onScroll() {
+      setScrolled(window.scrollY > 8);
+    }
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
     function shortcuts(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setView("chat");
         void newConversation();
+        return;
+      }
+      if (e.key === "Escape") {
+        setModelMenu(false);
+        if (menuOpen) {
+          e.preventDefault();
+          setMenuOpen(false);
+          setHighlighted(-1);
+        }
+        return;
       }
       if (
         e.key === "/" &&
         !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement).tagName)
       ) {
         e.preventDefault();
-        searchInput.current?.focus();
+        setView("chat");
+        setMenuOpen(true);
+        window.setTimeout(() => searchInput.current?.focus(), 60);
       }
     }
     window.addEventListener("keydown", shortcuts);
     return () => window.removeEventListener("keydown", shortcuts);
   });
+
+  useEffect(() => {
+    if (!menuOpen || highlighted < 0) return;
+    const reduce = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    document
+      .querySelector(".conversation-row.keyboard-active")
+      ?.scrollIntoView({
+        block: "nearest",
+        behavior: reduce ? "auto" : "smooth",
+      });
+  }, [highlighted, menuOpen]);
+
+  function handleListNav(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlighted((h) => {
+        const max = conversations.length - 1;
+        if (max < 0) return -1;
+        return e.key === "ArrowDown"
+          ? Math.min(max, h + 1)
+          : Math.max(0, h - 1);
+      });
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      if (conversations.length > 0) setHighlighted(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      if (conversations.length > 0) setHighlighted(conversations.length - 1);
+    } else if (e.key === "Enter") {
+      if (highlighted >= 0 && conversations[highlighted]) {
+        e.preventDefault();
+        void selectConversation(conversations[highlighted]);
+      }
+    }
+  }
 
   async function selectConversation(item: Conversation) {
     setView("chat");
@@ -138,7 +245,7 @@ export default function App() {
     setReply("");
     setActive(await api.conversation(item.id));
     if (item.model) setModel(item.model);
-    setSidebarOpen(false);
+    setMenuOpen(false);
   }
   async function newConversation() {
     setError("");
@@ -146,7 +253,7 @@ export default function App() {
     const created = await api.create(model || null);
     setActive({ ...created, messages: [] });
     setConversations((c) => [created, ...c]);
-    setSidebarOpen(false);
+    setMenuOpen(false);
     window.setTimeout(() => textarea.current?.focus(), 40);
   }
   async function deleteConversation(item: Conversation) {
@@ -221,229 +328,293 @@ export default function App() {
   }
 
   const isConnected = status?.connected === true;
-  const sidebar = (
-    <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
-      <div className="side-brand">
-        <div className="brand-symbol">
-          <Command size={16} />
-        </div>
-        <span>
-          local<span className="brand-ai">ai</span>
-        </span>
-        <button
-          className="icon-btn mobile-close"
-          onClick={() => setSidebarOpen(false)}
-          aria-label={t("closeSidebar")}
-        >
-          <X size={17} />
-        </button>
-      </div>
-      <button
-        className="new-chat"
-        onClick={() => {
-          setView("chat");
-          void newConversation();
-        }}
-      >
-        <Plus size={16} /> {t("newConversation")} <span>⌘ K</span>
-      </button>
-      <div className="side-label">{t("workspace")}</div>
-      <button
-        className={`nav-item ${view === "chat" ? "selected" : ""}`}
-        onClick={() => setView("chat")}
-      >
-        <MessageSquare size={15} /> {t("conversations")}{" "}
-        <span className="nav-count">{conversations.length}</span>
-      </button>
-      <button
-        className={`nav-item playground-link ${view === "playground" ? "selected" : ""}`}
-        onClick={() => {
-          setError("");
-          setView("playground");
-          setSidebarOpen(false);
-        }}
-      >
-        <Sparkles size={15} /> {t("promptPlayground")}
-      </button>
-      <button
-        className={`nav-item ${view === "documents" ? "selected" : ""}`}
-        onClick={() => {
-          setError("");
-          setView("documents");
-          setSidebarOpen(false);
-        }}
-      >
-        <BookOpen size={15} />{" "}
-        {language === "nl" ? "Documentzoeker" : "Document Q&A"}
-      </button>
-      <button
-        className={`nav-item ${view === "code" ? "selected" : ""}`}
-        onClick={() => {
-          setError("");
-          setView("code");
-          setSidebarOpen(false);
-        }}
-      >
-        <Braces size={15} />{" "}
-        {language === "nl" ? "Code-uitlegger" : "Code explainer"}
-      </button>
-      <div className="convo-heading">
-        <div className="side-label">{t("recent")}</div>
-        <span>{conversations.length}</span>
-      </div>
-      <label className="search-box">
-        <Search size={14} />
-        <input
-          ref={searchInput}
-          placeholder={t("searchConversations")}
-          aria-label={t("searchConversations")}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <kbd>/</kbd>
-      </label>
-      <div className="conversation-list">
-        {conversations.map((item) => (
-          <div
-            key={item.id}
-            className={`conversation-row ${active?.id === item.id ? "active" : ""}`}
+  const conversationsMenu = (
+    <div className="mega-panel">
+      <div className="mega-menu-inner">
+        <aside className="mega-aside">
+          <button
+            className="new-chat mega-new"
+            onClick={() => {
+              setView("chat");
+              void newConversation();
+            }}
           >
+            <Plus size={16} /> {t("newConversation")} <span>⌘ K</span>
+          </button>
+          <label className="search-box" title={t("searchShortcuts")}>
+            <Search size={14} />
+            <input
+              ref={searchInput}
+              placeholder={t("searchConversations")}
+              aria-label={t("searchConversations")}
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setHighlighted(0);
+              }}
+              onKeyDown={handleListNav}
+            />
+            <kbd>/</kbd>
+          </label>
+          <div className="mega-footer">
+            <div className={`engine-card ${isConnected ? "online" : ""}`}>
+              <div className="engine-indicator">
+                <Cpu size={15} />
+              </div>
+              <div>
+                <strong>{t("ollamaEngine")}</strong>
+                <small>
+                  {isConnected
+                    ? `${t("connected")}${status?.version ? ` · v${status.version}` : ""}`
+                    : t("notConnected")}
+                </small>
+              </div>
+              <span className="engine-dot" />
+            </div>
+          </div>
+        </aside>
+        <div className="mega-main">
+          <div className="mega-actions">
             <button
-              className="conversation-select"
-              onClick={() => void selectConversation(item)}
-              title={item.title}
+              type="button"
+              className="mega-tile"
+              onClick={() => {
+                setError("");
+                setView("playground");
+                setMenuOpen(false);
+              }}
             >
-              <span className="conversation-title">{item.title}</span>
-              <span className="conversation-model">
-                {item.model || t("noModelSelected")}
+              <span className="mega-tile-icon">
+                <Sparkles size={17} />
+              </span>
+              <span className="mega-tile-text">
+                <b>{t("promptPlayground")}</b>
+                <small>
+                  {language === "nl"
+                    ? "Vergelijk meerdere modellen"
+                    : "Compare multiple models"}
+                </small>
               </span>
             </button>
-            <div className="row-actions">
-              {renaming === item.id ? (
-                <>
-                  <button
-                    onClick={() => void renameConversation(item.id)}
-                    title={t("save")}
-                    aria-label={`${t("save")} ${item.title}`}
-                  >
-                    <Check size={14} />
-                  </button>
-                  <button
-                    onClick={() => setRenaming(null)}
-                    title={t("cancel")}
-                    aria-label={`${t("cancel")} ${item.title}`}
-                  >
-                    <X size={14} />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => {
-                      setRenaming(item.id);
-                      setRenameText(item.title);
+            <button
+              type="button"
+              className="mega-tile"
+              onClick={() => {
+                setError("");
+                setView("documents");
+                setMenuOpen(false);
+              }}
+            >
+              <span className="mega-tile-icon">
+                <BookOpen size={17} />
+              </span>
+              <span className="mega-tile-text">
+                <b>{language === "nl" ? "Document Q&A" : "Document Q&A"}</b>
+                <small>
+                  {language === "nl"
+                    ? "Vraag over je bestanden"
+                    : "Ask about your files"}
+                </small>
+              </span>
+            </button>
+            <button
+              type="button"
+              className="mega-tile"
+              onClick={() => {
+                setError("");
+                setView("code");
+                setMenuOpen(false);
+              }}
+            >
+              <span className="mega-tile-icon">
+                <Braces size={17} />
+              </span>
+              <span className="mega-tile-text">
+                <b>{language === "nl" ? "Code-uitleg" : "Code explainer"}</b>
+                <small>
+                  {language === "nl" ? "Laat code uitzoeken" : "Explain code"}
+                </small>
+              </span>
+            </button>
+          </div>
+          <div className="mega-label">
+            <span>{t("recent")}</span>
+            <span key={conversations.length} className="mega-count">
+              {conversations.length}
+            </span>
+          </div>
+          <div className="conversation-list">
+            {conversations.map((item, index) => (
+              <div
+                key={item.id}
+                className={`conversation-row ${active?.id === item.id ? "active" : ""} ${
+                  highlighted === index ? "keyboard-active" : ""
+                }`}
+                onMouseEnter={() => setHighlighted(index)}
+              >
+                <button
+                  className="conversation-select"
+                  onClick={() => void selectConversation(item)}
+                  title={item.title}
+                >
+                  <span className="conversation-title">{item.title}</span>
+                  <span className="conversation-model">
+                    {item.model || t("noModelSelected")}
+                  </span>
+                </button>
+                <div className="row-actions">
+                  {renaming === item.id ? (
+                    <>
+                      <button
+                        onClick={() => void renameConversation(item.id)}
+                        title={t("save")}
+                        aria-label={`${t("save")} ${item.title}`}
+                      >
+                        <Check size={14} />
+                      </button>
+                      <button
+                        onClick={() => setRenaming(null)}
+                        title={t("cancel")}
+                        aria-label={`${t("cancel")} ${item.title}`}
+                      >
+                        <X size={14} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          setRenaming(item.id);
+                          setRenameText(item.title);
+                        }}
+                        title={t("rename")}
+                        aria-label={`${t("rename")} ${item.title}`}
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        onClick={() => void deleteConversation(item)}
+                        title={t("delete")}
+                        aria-label={`${t("delete")} ${item.title}`}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </>
+                  )}
+                </div>
+                {renaming === item.id && (
+                  <input
+                    className="rename-input"
+                    value={renameText}
+                    autoFocus
+                    aria-label={`Conversation title for ${item.title}`}
+                    onChange={(e) => setRenameText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void renameConversation(item.id);
+                      if (e.key === "Escape") setRenaming(null);
                     }}
-                    title={t("rename")}
-                    aria-label={`${t("rename")} ${item.title}`}
-                  >
-                    <Pencil size={13} />
-                  </button>
-                  <button
-                    onClick={() => void deleteConversation(item)}
-                    title={t("delete")}
-                    aria-label={`${t("delete")} ${item.title}`}
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </>
-              )}
-            </div>
-            {renaming === item.id && (
-              <input
-                className="rename-input"
-                value={renameText}
-                autoFocus
-                aria-label={`Conversation title for ${item.title}`}
-                onChange={(e) => setRenameText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void renameConversation(item.id);
-                  if (e.key === "Escape") setRenaming(null);
-                }}
-              />
+                  />
+                )}
+              </div>
+            ))}
+            {conversations.length === 0 && (
+              <div
+                key={
+                  loadingConversations
+                    ? "loading"
+                    : search
+                      ? "no-matches"
+                      : "empty"
+                }
+                className="sidebar-empty"
+              >
+                {loadingConversations
+                  ? t("loadingConversations")
+                  : search
+                    ? t("noMatches")
+                    : t("emptyConversations")}
+              </div>
             )}
           </div>
-        ))}
-        {conversations.length === 0 && (
-          <div className="sidebar-empty">
-            {loadingConversations
-              ? t("loadingConversations")
-              : search
-                ? t("noMatches")
-                : t("emptyConversations")}
-          </div>
-        )}
-      </div>
-      <div className="sidebar-bottom">
-        <div className={`engine-card ${isConnected ? "online" : ""}`}>
-          <div className="engine-indicator">
-            <Cpu size={15} />
-          </div>
-          <div>
-            <strong>{t("ollamaEngine")}</strong>
-            <small>
-              {isConnected
-                ? `${t("connected")}${status?.version ? ` · v${status.version}` : ""}`
-                : t("notConnected")}
-            </small>
-          </div>
-          <span className="engine-dot" />
-        </div>
-        <div className="profile">
-          <div className="avatar">LC</div>
-          <div>
-            <b>{t("localWorkspace")}</b>
-            <small>{t("privateEnvironment")}</small>
-          </div>
-          <MoreHorizontal size={16} />
         </div>
       </div>
-    </aside>
+    </div>
   );
 
   return (
     <div className="app-shell">
-      <div
-        className={`sidebar-backdrop ${sidebarOpen ? "visible" : ""}`}
-        onClick={() => setSidebarOpen(false)}
-      />
-      {sidebar}
       <main className="main-area">
-        <header className="topbar">
+        <header className={`topbar ${scrolled ? "scrolled" : ""}`}>
           <div className="topbar-left">
             <button
-              className="icon-btn menu-trigger"
-              onClick={() => setSidebarOpen(true)}
-              aria-label={t("openSidebar")}
+              type="button"
+              className="topbar-logo"
+              onClick={() => setView("chat")}
+              aria-label={t("conversations")}
             >
-              <Menu size={18} />
+              <span className="brand-symbol" aria-hidden="true">
+                <span />
+              </span>
             </button>
-            <span className="breadcrumb">
-              {t("breadcrumbWorkspace")} <span>/</span>{" "}
-              <b>
-                {view === "playground"
-                  ? t("promptPlayground")
-                  : view === "documents"
-                    ? language === "nl"
-                      ? "Documentzoeker"
-                      : "Document Q&A"
-                    : view === "code"
-                      ? language === "nl"
-                        ? "Code-uitlegger"
-                        : "Code explainer"
-                      : active?.title || t("newConversationTitle")}
-              </b>
+            <span className="topbar-brand">
+              localai<span className="brand-period">.</span>
             </span>
           </div>
+          <nav className="view-switch" aria-label={t("workspace")}>
+            <button
+              type="button"
+              className={`conversations-tab ${view === "chat" ? "active" : ""} ${menuOpen ? "open" : ""}`}
+              aria-pressed={view === "chat"}
+              aria-expanded={menuOpen}
+              onClick={() => {
+                setView("chat");
+                setMenuOpen((v) => !v);
+              }}
+            >
+              <MessageSquare size={14} />
+              <span>{t("conversations")}</span>
+              <ChevronDown size={13} className="tab-caret" />
+            </button>
+            <button
+              type="button"
+              className={view === "playground" ? "active" : ""}
+              aria-pressed={view === "playground"}
+              onClick={() => {
+                setError("");
+                setView("playground");
+                setMenuOpen(false);
+              }}
+            >
+              <Sparkles size={14} />
+              <span>{t("promptPlayground")}</span>
+            </button>
+            <button
+              type="button"
+              className={view === "documents" ? "active" : ""}
+              aria-pressed={view === "documents"}
+              onClick={() => {
+                setError("");
+                setView("documents");
+                setMenuOpen(false);
+              }}
+            >
+              <BookOpen size={14} />
+              <span>{language === "nl" ? "Documenten" : "Documents"}</span>
+            </button>
+            <button
+              type="button"
+              className={view === "code" ? "active" : ""}
+              aria-pressed={view === "code"}
+              onClick={() => {
+                setError("");
+                setView("code");
+                setMenuOpen(false);
+              }}
+            >
+              <Braces size={14} />
+              <span>{language === "nl" ? "Code" : "Code"}</span>
+            </button>
+          </nav>
           <div className="topbar-right">
             <div
               className="language-switch"
@@ -467,6 +638,16 @@ export default function App() {
                 NL
               </button>
             </div>
+            <button
+              type="button"
+              className="icon-btn theme-toggle"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              aria-label={
+                theme === "dark" ? t("enableLightMode") : t("enableDarkMode")
+              }
+            >
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
             <span
               className={`status-pill ${isConnected ? "connected" : status ? "" : "checking"}`}
             >
@@ -479,6 +660,12 @@ export default function App() {
             </span>
           </div>
         </header>
+        {menuOpen && (
+          <div className="mega-backdrop" onClick={() => setMenuOpen(false)} />
+        )}
+        <div className={`mega-menu ${menuOpen ? "open" : ""}`}>
+          {conversationsMenu}
+        </div>
         {view === "playground" ? (
           <Playground models={models} language={language} />
         ) : view === "documents" || view === "code" ? (
@@ -497,26 +684,42 @@ export default function App() {
               >
                 {!active?.messages?.length && !reply && (
                   <div className="welcome">
-                    <div className="welcome-orbit">
-                      <div className="orbit orbit-one" />
-                      <div className="orbit orbit-two" />
-                      <div className="welcome-mark">
-                        <Sparkles size={23} />
-                      </div>
-                      <span className="orbit-dot dot-one" />
-                      <span className="orbit-dot dot-two" />
-                      <span className="orbit-dot dot-three" />
+                    <div className="welcome-mark" data-reveal="scale">
+                      <MessageSquare size={20} />
                     </div>
-                    <div className="welcome-kicker">
+                    <div
+                      className="welcome-kicker"
+                      data-reveal
+                      style={
+                        { "--reveal-delay": "60ms" } as React.CSSProperties
+                      }
+                    >
                       <span /> {t("welcomeKicker")}
                     </div>
-                    <h1>
-                      {t("thinkFreely")}
-                      <br />
-                      <em>{t("runLocally")}</em>
+                    <h1
+                      data-reveal
+                      style={
+                        { "--reveal-delay": "140ms" } as React.CSSProperties
+                      }
+                    >
+                      {t("thinkFreely")} <em>{t("runLocally")}</em>
                     </h1>
-                    <p className="welcome-copy">{t("welcomeCopy")}</p>
-                    <div className="starter-card">
+                    <p
+                      className="welcome-copy"
+                      data-reveal
+                      style={
+                        { "--reveal-delay": "220ms" } as React.CSSProperties
+                      }
+                    >
+                      {t("welcomeCopy")}
+                    </p>
+                    <div
+                      className="starter-card"
+                      data-reveal
+                      style={
+                        { "--reveal-delay": "300ms" } as React.CSSProperties
+                      }
+                    >
                       <div className="starter-icon">
                         <Zap size={17} />
                       </div>
@@ -541,16 +744,27 @@ export default function App() {
                       </div>
                       <Activity size={15} className="starter-activity" />
                     </div>
-                    <div className="privacy-note">
-                      <span className="privacy-lock">◈</span>{" "}
-                      {t("promptsStayLocal")}
+                    <div
+                      className="privacy-note"
+                      data-reveal
+                      style={
+                        { "--reveal-delay": "380ms" } as React.CSSProperties
+                      }
+                    >
+                      <ShieldCheck size={13} /> {t("promptsStayLocal")}
                     </div>
                   </div>
                 )}
-                {active?.messages?.map((message) => (
+                {active?.messages?.map((message, index) => (
                   <article
                     key={message.id}
                     className={`message ${message.role}`}
+                    data-reveal
+                    style={
+                      {
+                        "--reveal-delay": `${Math.min(index, 6) * 45}ms`,
+                      } as React.CSSProperties
+                    }
                   >
                     <div className="message-avatar">
                       {message.role === "assistant" ? (

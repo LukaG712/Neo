@@ -9,6 +9,8 @@ export const messages = {
     promptPlayground: "Prompt Playground",
     recent: "RECENT",
     searchConversations: "Search conversations",
+    searchShortcuts:
+      "Press / to search · ↑↓ to navigate · Home/End to jump · Enter to open",
     noModelSelected: "No model selected",
     save: "Save",
     cancel: "Cancel",
@@ -90,6 +92,8 @@ export const messages = {
     responsesStayLocal:
       "Responses stay local. Only installed Ollama models are available for comparison.",
     language: "Language",
+    enableLightMode: "Enable light mode",
+    enableDarkMode: "Enable dark mode",
   },
   nl: {
     closeSidebar: "Zijbalk sluiten",
@@ -99,6 +103,8 @@ export const messages = {
     promptPlayground: "Prompt-speeltuin",
     recent: "RECENT",
     searchConversations: "Gesprekken zoeken",
+    searchShortcuts:
+      "Druk op / om te zoeken · ↑↓ om te navigeren · Home/End om te springen · Enter om te openen",
     noModelSelected: "Geen model geselecteerd",
     save: "Opslaan",
     cancel: "Annuleren",
@@ -182,6 +188,8 @@ export const messages = {
     responsesStayLocal:
       "Antwoorden blijven lokaal. Alleen geïnstalleerde Ollama-modellen zijn beschikbaar om te vergelijken.",
     language: "Taal",
+    enableLightMode: "Lichtmodus inschakelen",
+    enableDarkMode: "Donkere modus inschakelen",
   },
 } as const;
 

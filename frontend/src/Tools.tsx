@@ -6,8 +6,8 @@ import {
   LoaderCircle,
   Sparkles,
   Trash2,
+  Send,
   Upload,
-  WandSparkles,
 } from "lucide-react";
 import MarkdownContent from "./MarkdownContent";
 import {
@@ -282,7 +282,7 @@ export default function Tools({
                 {busy ? (
                   <LoaderCircle className="spin" size={15} />
                 ) : (
-                  <WandSparkles size={15} />
+                  <Send size={15} />
                 )}
                 {nl ? "Vraag stellen" : "Ask question"}
               </button>
@@ -345,7 +345,7 @@ export default function Tools({
               {busy ? (
                 <LoaderCircle className="spin" size={15} />
               ) : (
-                <WandSparkles size={15} />
+                <Send size={15} />
               )}
               {nl ? "Code uitleggen" : "Explain code"}
             </button>

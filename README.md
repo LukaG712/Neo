@@ -20,22 +20,18 @@ Local AI Control Center is a locally running dashboard for Ollama. Stream conver
 - English and Dutch interface with the selected language remembered locally
 - Markdown formatting for responses, including lists, tables, and code blocks
 
-## Screenshots
+## Keyboard shortcuts
 
-<table>
-  <tr>
-    <td><strong>Dashboard</strong><br><img src="screenshots/dashboard.png" alt="Local AI Control Center dashboard" width="400"></td>
-    <td><strong>Document Q&amp;A</strong><br><img src="screenshots/DocumentQA.png" alt="Document Q&A screen" width="400"></td>
-  </tr>
-  <tr>
-    <td><strong>Prompt Playground — 1</strong><br><img src="screenshots/playground-1.png" alt="Prompt Playground comparison" width="400"></td>
-    <td><strong>Prompt Playground — 2</strong><br><img src="screenshots/playground-2.png" alt="Prompt Playground comparison results" width="400"></td>
-  </tr>
-  <tr>
-    <td><strong>Code explainer — 1</strong><br><img src="screenshots/Codeexplainer-1.png" alt="Code explainer screen" width="400"></td>
-    <td><strong>Code explainer — 2</strong><br><img src="screenshots/Codeexplainer-2.png" alt="Code explainer response" width="400"></td>
-  </tr>
-</table>
+| Shortcut | Action |
+| --- | --- |
+| `/` | Open the conversations menu and focus the search field |
+| `⌘ K` / `Ctrl K` | Start a new conversation |
+| `↑` / `↓` | Move the highlight through the conversation list |
+| `Home` / `End` | Jump to the first / last conversation |
+| `Enter` | Open the highlighted conversation |
+| `Esc` | Close the conversations menu or model picker |
+
+In the conversation list, the highlight also follows the mouse. Shortcut hints appear when you hover or focus a control.
 
 ## Tech stack and architecture
 
@@ -176,5 +172,4 @@ npm run build
 backend/    FastAPI API, Ollama client, SQLite schema, and pytest tests
             pyproject.toml and uv.lock manage the Python environment
 frontend/   React + Vite application
-screenshots/ Images displayed in this README
 ```
