@@ -11,10 +11,12 @@ Local AI Control Center is a locally running dashboard for Ollama. Stream conver
 ## Features
 
 - Ollama connection and installed-model status
+- Cloud AI provider support (OpenAI, Anthropic, Google Gemini) via configurable API keys
 - Streaming chat with conversations and messages persisted in SQLite
 - Search, rename, and delete conversations
 - Generation time, prompt time, token count, and tokens per second when Ollama provides them
-- Prompt Playground for running one prompt across two to four local models in parallel
+- Prompt Playground for running one prompt across two to four models in parallel (Ollama or cloud)
+- Temperature and max tokens controls per conversation (cloud providers)
 - AI tools for asking questions about local `.txt` and `.md` documents and getting code explained
 - Responsive dark interface with loading, empty, and error states
 - English and Dutch interface with the selected language remembered locally
@@ -41,6 +43,7 @@ In the conversation list, the highlight also follows the mouse. Shortcut hints a
 | API | Python and FastAPI |
 | Storage | SQLite |
 | Local AI | Ollama HTTP API |
+| Cloud AI | OpenAI, Anthropic, Google Gemini (via server-side API keys) |
 | Python environment and dependencies | uv |
 | Backend tests | pytest with mocked Ollama requests |
 
@@ -127,6 +130,10 @@ Defaults target Ollama at `http://127.0.0.1:11434`, store SQLite data at `backen
 | `LACC_HOST` | `127.0.0.1` | API bind address |
 | `LACC_PORT` | `8000` | API port |
 | `LACC_REQUEST_TIMEOUT_SECONDS` | `10` | Ollama connection and request timeout; response reads allow up to 5 minutes |
+| `LACC_OPENAI_API_KEY` | — | Enables OpenAI cloud models |
+| `LACC_ANTHROPIC_API_KEY` | — | Enables Anthropic cloud models |
+| `LACC_GEMINI_API_KEY` | — | Enables Google Gemini cloud models |
+| `LACC_DEFAULT_PROVIDER` | `ollama` | Default provider (ollama, openai, anthropic, or google) |
 
 Copy `.env.example` to `.env` in the repository root to customize settings. Start the API from `backend/` so the relative SQLite path resolves to `backend/data/`. The API’s CORS allowlist is restricted to local Vite development origins.
 
@@ -161,7 +168,9 @@ npm run build
 - The Ollama base URL is configurable for local setups; set it only to an endpoint you trust.
 - The API does not provide authentication because it is intended to run locally. Anyone who can access the bound local service can use it.
 - Prompts, messages, conversation titles, and added document contents are stored in the local SQLite database. The database is excluded from version control.
-- Chat input and prompt size are capped. Ollama requests have bounded timeouts; long generations can still fail or be cancelled.
+- Cloud API keys live only in the server's private environment (`.env`, kept out of source control, `chmod 600`). The browser never receives them.
+- When using cloud providers, prompts and conversation content are sent to the provider's API. Review provider terms and charges.
+- Cloud model usage may incur charges from the provider and is subject to the provider's terms.
 - Prompt Playground only accepts models reported as installed by the configured Ollama service. It does not download or delete models.
 - The document tool stores text in SQLite and selects relevant passages with keyword matching; it is not a semantic search engine.
 - Only `.txt` and `.md` files up to 200 KB are accepted. Their contents are sent to the selected local Ollama model when you ask a question.

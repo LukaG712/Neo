@@ -11,10 +11,12 @@ Local AI Control Center is een lokaal draaiend dashboard voor Ollama. Je kunt ge
 ## Functies
 
 - Status van de Ollama-verbinding en geïnstalleerde modellen
+- Cloud AI-providerondersteuning (OpenAI, Anthropic, Google Gemini) via configureerbare API-sleutels
 - Chatten met streaming, met gesprekken en berichten opgeslagen in SQLite
 - Gesprekken zoeken, hernoemen en verwijderen
 - Generatieduur, promptduur, aantal tokens en tokens per seconde wanneer Ollama die gegevens levert
-- Prompt-speeltuin om één prompt parallel met twee tot vier lokale modellen uit te voeren
+- Prompt-speeltuin om één prompt parallel met twee tot vier modellen uit te voeren (Ollama of cloud)
+- Temperatuur en maximum tokens per gesprek (cloudproviders)
 - AI-tools: vraag stellen over lokale `.txt`- en `.md`-documenten, en code laten uitleggen
 - Responsieve donkere interface met laad-, lege en foutstatussen
 - Engelse en Nederlandse interface; de gekozen taal wordt lokaal onthouden
@@ -41,6 +43,7 @@ In de gesprekkenlijst volgt de markering ook de muis. Sneltoets-hints verschijne
 | API | Python en FastAPI |
 | Opslag | SQLite |
 | Lokale AI | Ollama HTTP API |
+| Cloud AI | OpenAI, Anthropic, Google Gemini (via server-side API-sleutels) |
 | Python-omgeving en dependencies | uv |
 | Backendtests | pytest; Ollama-verzoeken worden nagebootst |
 
@@ -127,6 +130,10 @@ Standaard gebruikt de app Ollama op `http://127.0.0.1:11434`, slaat SQLite-gegev
 | `LACC_HOST` | `127.0.0.1` | Bindadres van de API |
 | `LACC_PORT` | `8000` | API-poort |
 | `LACC_REQUEST_TIMEOUT_SECONDS` | `10` | Time-out voor verbindingen en verzoeken aan Ollama; het lezen van antwoorden mag maximaal 5 minuten duren |
+| `LACC_OPENAI_API_KEY` | — | Schakelt OpenAI-cloudmodellen in |
+| `LACC_ANTHROPIC_API_KEY` | — | Schakelt Anthropic-cloudmodellen in |
+| `LACC_GEMINI_API_KEY` | — | Schakelt Google Gemini-cloudmodellen in |
+| `LACC_DEFAULT_PROVIDER` | `ollama` | Standaardprovider (ollama, openai, anthropic, of google) |
 
 Kopieer `.env.example` naar `.env` in de hoofdmap om instellingen aan te passen. Start de API vanuit `backend/`, zodat het relatieve pad naar de database uitkomt op `backend/data/`. De CORS-toestaanlijst van de API is beperkt tot lokale Vite-ontwikkeladressen.
 

@@ -31,6 +31,7 @@ export type ComparisonResult = {
   eval_duration?: number;
 };
 export type LocalDocument = { id: string; name: string; created_at: string };
+export type ProviderStatus = { id: string; name: string; configured: boolean };
 export type ToolResult = {
   answer?: string;
   explanation?: string;
@@ -58,6 +59,10 @@ export const api = {
   status: () => request<OllamaStatus>("/api/ollama/status"),
   models: async () =>
     (await request<{ models: Model[] }>("/api/ollama/models")).models,
+  providers: async () =>
+    (await request<{ providers: ProviderStatus[] }>("/api/providers")).providers,
+  providerModels: async (provider: string) =>
+    (await request<{ models: string[] }>(`/api/providers/${encodeURIComponent(provider)}/models`)).models,
   conversations: async (search = "") =>
     (
       await request<{ conversations: Conversation[] }>(
@@ -118,6 +123,45 @@ export const api = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ conversation_id: id, model, message }),
+      signal,
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.detail || `Request failed (${response.status})`);
+    }
+    if (!response.body)
+      throw new Error("Streaming is not available in this browser.");
+    const reader = response.body.getReader(),
+      decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+      const events = buffer.split("\n\n");
+      buffer = events.pop() || "";
+      for (const raw of events) {
+        const line = raw.split("\n").find((item) => item.startsWith("data: "));
+        if (!line) continue;
+        const event = JSON.parse(line.slice(6));
+        if (event.type === "token") onToken(event.content);
+        if (event.type === "error") throw new Error(event.message);
+      }
+      if (done) break;
+    }
+  },
+  streamProvider: async (
+    provider: string,
+    model: string,
+    messages: { role: string; content: string }[],
+    onToken: (text: string) => void,
+    signal: AbortSignal,
+    temperature = 0.7,
+    maxTokens = 4096,
+  ) => {
+    const response = await fetch("/api/providers/chat/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider, model, messages, temperature, max_tokens: maxTokens }),
       signal,
     });
     if (!response.ok) {

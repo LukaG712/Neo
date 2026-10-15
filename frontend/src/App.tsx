@@ -25,6 +25,7 @@ import {
   type Message,
   type Model,
   type OllamaStatus,
+  type ProviderStatus,
 } from "./api/client";
 import Playground from "./Playground";
 import Tools from "./Tools";
@@ -64,10 +65,15 @@ export default function App() {
   const t = (key: MessageKey) => messages[language][key];
   const [status, setStatus] = useState<OllamaStatus | null>(null);
   const [models, setModels] = useState<Model[]>([]);
+  const [providers, setProviders] = useState<ProviderStatus[]>([]);
+  const [activeProvider, setActiveProvider] = useState<string>("ollama");
+  const [providerBusy, setProviderBusy] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [active, setActive] = useState<Conversation | null>(null);
   const [model, setModel] = useState("");
+  const [temperature, setTemperature] = useState(0.7);
+  const [maxTokens, setMaxTokens] = useState(4096);
   const [view, setView] = useState<
     "chat" | "playground" | "documents" | "code"
   >("chat");
@@ -134,12 +140,18 @@ export default function App() {
 
   const refresh = useCallback(async () => {
     try {
-      const [s, m, c] = await Promise.allSettled([
+      const [s, p, m, c] = await Promise.allSettled([
         api.status(),
+        api.providers(),
         api.models(),
         api.conversations(search),
       ]);
       setStatus(s.status === "fulfilled" ? s.value : { connected: false });
+      if (p.status === "fulfilled") {
+        setProviders(p.value);
+        const configured = p.value.find((pr) => pr.configured);
+        if (configured && activeProvider === "ollama") setActiveProvider(configured.id);
+      }
       const availableModels = m.status === "fulfilled" ? m.value : [];
       setModels(availableModels);
       if (c.status === "fulfilled") setConversations(c.value);
@@ -147,7 +159,7 @@ export default function App() {
     } finally {
       setLoadingConversations(false);
     }
-  }, [search]);
+  }, [search, activeProvider]);
   useEffect(() => {
     void refresh();
     const interval = window.setInterval(() => {
@@ -155,6 +167,28 @@ export default function App() {
     }, 12000);
     return () => window.clearInterval(interval);
   }, [refresh]);
+
+  useEffect(() => {
+    let alive = true;
+    if (activeProvider !== "ollama") {
+      setProviderBusy(true);
+      api.providerModels(activeProvider)
+        .then((providerModels) => {
+          if (!alive) return;
+          setModels(providerModels.map((name) => ({ name })));
+          setModel((current) => current || providerModels[0] || "");
+        })
+        .catch(() => {
+          if (!alive) return;
+          setModels([]);
+        })
+        .finally(() => {
+          if (!alive) return;
+          setProviderBusy(false);
+        });
+    }
+    return () => { alive = false; };
+  }, [activeProvider]);
   useEffect(() => {
     if (active)
       void api
@@ -292,13 +326,26 @@ export default function App() {
       }
       const controller = new AbortController();
       aborter.current = controller;
-      await api.stream(
-        current.id,
-        model,
-        content,
-        (token) => setReply((text) => text + token),
-        controller.signal,
-      );
+      const messages = [...(current.messages || []), { role: "user", content }];
+      if (activeProvider !== "ollama") {
+        await api.streamProvider(
+          activeProvider,
+          model,
+          messages,
+          (token) => setReply((text) => text + token),
+          controller.signal,
+          temperature,
+          maxTokens,
+        );
+      } else {
+        await api.stream(
+          current.id,
+          model,
+          content,
+          (token) => setReply((text) => text + token),
+          controller.signal,
+        );
+      }
     } catch (e) {
       const msg = (e as Error).message;
       if (!aborter.current?.signal.aborted) setError(msg);
@@ -327,7 +374,9 @@ export default function App() {
     }
   }
 
-  const isConnected = status?.connected === true;
+  const isConnected = activeProvider === "ollama"
+    ? status?.connected === true
+    : providers.some((pr) => pr.id === activeProvider && pr.configured);
   const conversationsMenu = (
     <div className="mega-panel">
       <div className="mega-menu-inner">
@@ -887,6 +936,41 @@ export default function App() {
                   />
                   <div className="composer-toolbar">
                     <div className="composer-left">
+                      <div className="provider-picker-wrap">
+                        <button
+                          className="provider-picker"
+                          onClick={() => setModelMenu((v) => !v)}
+                          disabled={providerBusy || providers.length === 0}
+                        >
+                          <span className="model-dot" />
+                          <span>{activeProvider === "ollama" ? "Ollama" : activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1)}</span>
+                          <ChevronDown size={13} />
+                        </button>
+                        {modelMenu && providers.length > 0 && (
+                          <div className="model-menu">
+                            {providers.map((pr) => (
+                              <button
+                                key={pr.id}
+                                onClick={() => {
+                                  setActiveProvider(pr.id);
+                                  setModelMenu(false);
+                                  if (pr.id === "ollama") {
+                                    void api.models().then((ms) => {
+                                      setModels(ms);
+                                      setModel((current) => current || ms[0]?.name || "");
+                                    });
+                                  }
+                                }}
+                              >
+                                <span className="model-dot" />
+                                {pr.name}
+                                {pr.configured ? "" : " · not configured"}
+                                {activeProvider === pr.id && <Check size={13} />}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       <div className="model-picker-wrap">
                         <button
                           className="model-picker"
@@ -915,11 +999,14 @@ export default function App() {
                           </div>
                         )}
                       </div>
-                      <span className="local-indicator">
-                        <span /> {t("local")}
-                      </span>
+                        <span className="local-indicator">
+                          <span />
+                          {activeProvider === "ollama" ? t("local") : t("cloud")}
+                        </span>
                     </div>
                     <div className="composer-right">
+                      <label className="field"><span>Temp</span><input type="range" min="0" max="2" step="0.1" value={temperature} onChange={(event) => setTemperature(parseFloat(event.target.value))} /></label>
+                      <label className="field"><span>Max tokens</span><input type="number" min="1" max="32768" step="1" value={maxTokens} onChange={(event) => setMaxTokens(parseInt(event.target.value, 10) || 4096)} /></label>
                       <span className="send-hint">{t("sendHint")}</span>
                       <button
                         className="send-btn"

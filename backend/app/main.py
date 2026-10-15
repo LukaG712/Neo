@@ -7,8 +7,10 @@ from app.api.chat import router as chat_router
 from app.api.conversations import router as conversations_router
 from app.api.messages import router as messages_router
 from app.api.playground import router as playground_router
+from app.api.providers import router as providers_router
 from app.api.tools import router as tools_router
 from app.core.config import settings
+from app.core.providers import ProviderRegistry
 from app.db.database import init_db
 from app.ollama.client import OllamaClient, OllamaUnavailable
 
@@ -17,8 +19,10 @@ from app.ollama.client import OllamaClient, OllamaUnavailable
 async def lifespan(app: FastAPI):
     init_db()
     app.state.ollama = OllamaClient(settings.ollama_base_url, settings.request_timeout_seconds)
+    app.state.providers = ProviderRegistry(settings)
     yield
     await app.state.ollama.close()
+    await app.state.providers.close()
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
@@ -33,6 +37,7 @@ app.include_router(conversations_router)
 app.include_router(messages_router)
 app.include_router(chat_router)
 app.include_router(playground_router)
+app.include_router(providers_router)
 app.include_router(tools_router)
 
 

@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = 8000
     request_timeout_seconds: float = 10.0
+    openai_api_key: str | None = None
+    anthropic_api_key: str | None = None
+    gemini_api_key: str | None = None
+    default_provider: str = "ollama"
 
     model_config = SettingsConfigDict(
         env_file=Path(__file__).resolve().parents[3] / ".env",
