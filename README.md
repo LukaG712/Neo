@@ -175,10 +175,22 @@ npm run build
 - The document tool stores text in SQLite and selects relevant passages with keyword matching; it is not a semantic search engine.
 - Only `.txt` and `.md` files up to 200 KB are accepted. Their contents are sent to the selected local Ollama model when you ask a question.
 
+## Desktop app (portable .exe)
+
+A standalone Windows desktop app is available — no browser tabs, no PowerShell, no installation required.
+
+| File | Description |
+|------|-------------|
+| `Local-AI Desktop/release/Local AI Control Center 0.1.0.exe` | Portable executable — just double-click and run |
+| `Local-AI Desktop/release/Local AI Control Center Setup 0.1.0.exe` | Installer with Start Menu shortcut |
+
+The desktop app bundles the React frontend and the Python FastAPI backend together. Launching it opens Local AI Control Center in its own native window. Conversations and messages are stored in a local SQLite database, and Ollama is used for local AI models (make sure Ollama is running at `http://127.0.0.1:11434` before launching).
+
 ## Project structure
 
 ```text
 backend/    FastAPI API, Ollama client, SQLite schema, and pytest tests
             pyproject.toml and uv.lock manage the Python environment
 frontend/   React + Vite application
+Desktop/    Electron wrapper producing portable .exe and installer
 ```
