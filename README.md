@@ -175,16 +175,38 @@ npm run build
 - The document tool stores text in SQLite and selects relevant passages with keyword matching; it is not a semantic search engine.
 - Only `.txt` and `.md` files up to 200 KB are accepted. Their contents are sent to the selected local Ollama model when you ask a question.
 
-## Desktop app (portable .exe)
+## Desktop app (standalone .exe)
 
-A standalone Windows desktop app is available — no browser tabs, no PowerShell, no installation required.
+Build a standalone Windows desktop app — no browser tabs, no PowerShell windows, no installation required. The app bundles the React frontend and Python backend into a single portable folder.
 
-| File | Description |
-|------|-------------|
-| `Local-AI Desktop/release/Local AI Control Center 0.1.0.exe` | Portable executable — just double-click and run |
-| `Local-AI Desktop/release/Local AI Control Center Setup 0.1.0.exe` | Installer with Start Menu shortcut |
+### Build the desktop app
 
-The desktop app bundles the React frontend and the Python FastAPI backend together. Launching it opens Local AI Control Center in its own native window. Conversations and messages are stored in a local SQLite database, and Ollama is used for local AI models (make sure Ollama is running at `http://127.0.0.1:11434` before launching).
+**Prerequisites:** Node.js 18+, Python 3.11+, and [uv](https://docs.astral.sh/uv/).
+
+```powershell
+.\build-desktop.ps1
+```
+
+The script builds the frontend, installs the desktop dependencies (pywebview, pyinstaller), and packages everything into `dist-desktop/Local AI Control Center/`. The entire folder is portable — copy it anywhere and double-click `Local AI Control Center.exe` to run.
+
+### Run the desktop app
+
+```powershell
+cd "dist-desktop\Local AI Control Center"
+.\Local AI Control Center.exe
+```
+
+Make sure Ollama is running at `http://127.0.0.1:11434` before launching. Conversations are stored in a `data/` folder next to the executable.
+
+### Development (without building .exe)
+
+You can also run the desktop launcher directly during development:
+
+```powershell
+cd backend
+uv pip install pywebview
+uv run python ..\desktop_app.py
+```
 
 ## Project structure
 
@@ -192,5 +214,7 @@ The desktop app bundles the React frontend and the Python FastAPI backend togeth
 backend/    FastAPI API, Ollama client, SQLite schema, and pytest tests
             pyproject.toml and uv.lock manage the Python environment
 frontend/   React + Vite application
-Desktop/    Electron wrapper producing portable .exe and installer
+Desktop/    Legacy Electron wrapper (kept for reference)
+desktop_app.py   PyWebView desktop launcher (no console window)
+build-desktop.ps1  One-command build script for portable .exe
 ```

@@ -19,3 +19,7 @@ outputs/
 # Electron builder output (contains >100MB executables, rejected by GitHub)
 Desktop/release/
 
+# PyInstaller / desktop build output
+dist-desktop/
+*.spec
+

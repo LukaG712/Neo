@@ -518,7 +518,8 @@ select:focus-visible {
 .conversation-row.active .row-actions {
   display: flex;
 }
-.row-actions button {
+.row-actions button,
+.row-actions a {
   display: grid;
   place-items: center;
   width: 28px;
@@ -529,8 +530,10 @@ select:focus-visible {
   color: var(--text-tertiary);
   cursor: pointer;
   transition: all 0.15s ease;
+  text-decoration: none;
 }
-.row-actions button:hover {
+.row-actions button:hover,
+.row-actions a:hover {
   background: var(--bg-subtle);
   color: var(--text-primary);
 }

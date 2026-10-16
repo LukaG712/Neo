@@ -168,15 +168,53 @@ npm run build
 - Het Ollama-adres is instelbaar voor lokale configuraties; gebruik alleen een endpoint dat je vertrouwt.
 - De API heeft geen authenticatie, omdat deze bedoeld is voor lokaal gebruik. Iedereen met toegang tot de lokale service kan die gebruiken.
 - Prompts, berichten, gesprekstitels en toegevoegde documentinhoud worden opgeslagen in de lokale SQLite-database. De database wordt uitgesloten van versiebeheer.
-- De lengte van chatinvoer en prompts is begrensd. Verzoeken aan Ollama hebben time-outs; lange generaties kunnen alsnog mislukken of worden geannuleerd.
+- Cloud-API-sleutels blijven privé op de server (`.env`, buiten versiebeheer, `chmod 600`). De browser ontvangt ze nooit.
+- Bij gebruik van cloudproviders worden prompts en gespreksinhoud verzonden naar de API van de provider. Lees de voorwaarden en tarieven van de provider na.
+- Gebruik van cloudmodellen kan kosten veroorzaken bij de provider en valt onder diens voorwaarden.
 - De Prompt-speeltuin accepteert alleen modellen die door de ingestelde Ollama-service als geïnstalleerd worden gemeld. Modellen worden niet gedownload of verwijderd.
 - De documentzoeker bewaart tekstbestanden in SQLite en selecteert eenvoudige relevante passages op basis van trefwoorden; het is geen semantische zoekmachine.
 - Alleen `.txt`- en `.md`-bestanden tot 200 KB zijn toegestaan. Hun inhoud wordt meegestuurd naar het geselecteerde lokale Ollama-model wanneer je een vraag stelt.
 
+## Desktop-app (standalone .exe)
+
+Bouw een standalone Windows-desktopapp — geen browsertabbladen, geen PowerShell-vensters, geen installatie nodig. De app bundelt de React-frontend en de Python-backend in één portable map.
+
+### Bouw de desktop-app
+
+**Benodigdheden:** Node.js 18+, Python 3.11+ en [uv](https://docs.astral.sh/uv/).
+
+```powershell
+.\build-desktop.ps1
+```
+
+Het script bouwt de frontend, installeert de desktop-dependencies (pywebview, pyinstaller) en pakt alles in `dist-desktop/Local AI Control Center/` in. De hele map is portable — kopieer hem overal naartoe en dubbelklik `Local AI Control Center.exe` om te starten.
+
+### Start de desktop-app
+
+```powershell
+cd "dist-desktop\Local AI Control Center"
+.\Local AI Control Center.exe
+```
+
+Zorg ervoor dat Ollama draait op `http://127.0.0.1:11434` voordat je start. Gesprekken worden opgeslagen in een `data/`-map naast het executable.
+
+### Ontwikkeling (zonder .exe te bouwen)
+
+Tijdens ontwikkeling kun je de desktop-lancer ook direct uitvoeren:
+
+```powershell
+cd backend
+uv pip install pywebview
+uv run python ..\desktop_app.py
+```
+
 ## Projectstructuur
 
 ```text
-backend/    FastAPI-API, Ollama-client, SQLite-schema en pytest-tests
-            pyproject.toml en uv.lock beheren de Python-omgeving
-frontend/   React- en Vite-applicatie
+backend/           FastAPI-API, Ollama-client, SQLite-schema en pytest-tests
+                   pyproject.toml en uv.lock beheren de Python-omgeving
+frontend/          React- en Vite-applicatie
+Desktop/           Legacy Electron-wrapper (ter referentie bewaard)
+desktop_app.py     PyWebView-desktoplancer (geen consolevenster)
+build-desktop.ps1  Eén-commando buildscript voor portable .exe
 ```

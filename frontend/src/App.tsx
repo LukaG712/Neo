@@ -4,6 +4,7 @@ import {
   Check,
   ChevronDown,
   Cpu,
+  Download,
   BookOpen,
   Braces,
   MessageSquare,
@@ -150,7 +151,8 @@ export default function App() {
       if (p.status === "fulfilled") {
         setProviders(p.value);
         const configured = p.value.find((pr) => pr.configured);
-        if (configured && activeProvider === "ollama") setActiveProvider(configured.id);
+        if (configured && activeProvider === "ollama")
+          setActiveProvider(configured.id);
       }
       const availableModels = m.status === "fulfilled" ? m.value : [];
       setModels(availableModels);
@@ -172,11 +174,17 @@ export default function App() {
     let alive = true;
     if (activeProvider !== "ollama") {
       setProviderBusy(true);
-      api.providerModels(activeProvider)
+      api
+        .providerModels(activeProvider)
         .then((providerModels) => {
           if (!alive) return;
-          setModels(providerModels.map((name) => ({ name })));
-          setModel((current) => current || providerModels[0] || "");
+          const mapped = providerModels.map((item) =>
+            typeof item === "string"
+              ? { name: item }
+              : { name: item.name || (item as { id?: string }).id || "" },
+          );
+          setModels(mapped);
+          setModel((current) => current || mapped[0]?.name || "");
         })
         .catch(() => {
           if (!alive) return;
@@ -187,7 +195,9 @@ export default function App() {
           setProviderBusy(false);
         });
     }
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [activeProvider]);
   useEffect(() => {
     if (active)
@@ -321,31 +331,26 @@ export default function App() {
     let current = active;
     try {
       if (!current) {
-        current = await api.create(model);
+        current = await api.create(
+          model,
+          activeProvider,
+          temperature,
+          maxTokens,
+        );
         setActive({ ...current, messages: [] });
       }
       const controller = new AbortController();
       aborter.current = controller;
-      const messages = [...(current.messages || []), { role: "user", content }];
-      if (activeProvider !== "ollama") {
-        await api.streamProvider(
-          activeProvider,
-          model,
-          messages,
-          (token) => setReply((text) => text + token),
-          controller.signal,
-          temperature,
-          maxTokens,
-        );
-      } else {
-        await api.stream(
-          current.id,
-          model,
-          content,
-          (token) => setReply((text) => text + token),
-          controller.signal,
-        );
-      }
+      await api.stream(
+        current.id,
+        model,
+        content,
+        (token) => setReply((text) => text + token),
+        controller.signal,
+        activeProvider,
+        temperature,
+        maxTokens,
+      );
     } catch (e) {
       const msg = (e as Error).message;
       if (!aborter.current?.signal.aborted) setError(msg);
@@ -374,9 +379,10 @@ export default function App() {
     }
   }
 
-  const isConnected = activeProvider === "ollama"
-    ? status?.connected === true
-    : providers.some((pr) => pr.id === activeProvider && pr.configured);
+  const isConnected =
+    activeProvider === "ollama"
+      ? status?.connected === true
+      : providers.some((pr) => pr.id === activeProvider && pr.configured);
   const conversationsMenu = (
     <div className="mega-panel">
       <div className="mega-menu-inner">
@@ -531,6 +537,19 @@ export default function App() {
                     </>
                   ) : (
                     <>
+                      <a
+                        href={api.exportUrl(item.id, "markdown")}
+                        download
+                        title={
+                          language === "nl"
+                            ? "Exporteer als Markdown"
+                            : "Export as Markdown"
+                        }
+                        aria-label={`Export ${item.title}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Download size={13} />
+                      </a>
                       <button
                         onClick={() => {
                           setRenaming(item.id);
@@ -943,7 +962,12 @@ export default function App() {
                           disabled={providerBusy || providers.length === 0}
                         >
                           <span className="model-dot" />
-                          <span>{activeProvider === "ollama" ? "Ollama" : activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1)}</span>
+                          <span>
+                            {activeProvider === "ollama"
+                              ? "Ollama"
+                              : activeProvider.charAt(0).toUpperCase() +
+                                activeProvider.slice(1)}
+                          </span>
                           <ChevronDown size={13} />
                         </button>
                         {modelMenu && providers.length > 0 && (
@@ -957,7 +981,10 @@ export default function App() {
                                   if (pr.id === "ollama") {
                                     void api.models().then((ms) => {
                                       setModels(ms);
-                                      setModel((current) => current || ms[0]?.name || "");
+                                      setModel(
+                                        (current) =>
+                                          current || ms[0]?.name || "",
+                                      );
                                     });
                                   }
                                 }}
@@ -965,7 +992,9 @@ export default function App() {
                                 <span className="model-dot" />
                                 {pr.name}
                                 {pr.configured ? "" : " · not configured"}
-                                {activeProvider === pr.id && <Check size={13} />}
+                                {activeProvider === pr.id && (
+                                  <Check size={13} />
+                                )}
                               </button>
                             ))}
                           </div>
@@ -999,14 +1028,40 @@ export default function App() {
                           </div>
                         )}
                       </div>
-                        <span className="local-indicator">
-                          <span />
-                          {activeProvider === "ollama" ? t("local") : t("cloud")}
-                        </span>
+                      <span className="local-indicator">
+                        <span />
+                        {activeProvider === "ollama" ? t("local") : t("cloud")}
+                      </span>
                     </div>
                     <div className="composer-right">
-                      <label className="field"><span>Temp</span><input type="range" min="0" max="2" step="0.1" value={temperature} onChange={(event) => setTemperature(parseFloat(event.target.value))} /></label>
-                      <label className="field"><span>Max tokens</span><input type="number" min="1" max="32768" step="1" value={maxTokens} onChange={(event) => setMaxTokens(parseInt(event.target.value, 10) || 4096)} /></label>
+                      <label className="field">
+                        <span>Temp</span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="2"
+                          step="0.1"
+                          value={temperature}
+                          onChange={(event) =>
+                            setTemperature(parseFloat(event.target.value))
+                          }
+                        />
+                      </label>
+                      <label className="field">
+                        <span>Max tokens</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max="32768"
+                          step="1"
+                          value={maxTokens}
+                          onChange={(event) =>
+                            setMaxTokens(
+                              parseInt(event.target.value, 10) || 4096,
+                            )
+                          }
+                        />
+                      </label>
                       <span className="send-hint">{t("sendHint")}</span>
                       <button
                         className="send-btn"
