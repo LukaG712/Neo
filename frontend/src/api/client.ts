@@ -16,7 +16,6 @@ export type Conversation = {
   id: string;
   title: string;
   model: string | null;
-  provider?: string;
   created_at: string;
   updated_at: string;
   messages?: Message[];
@@ -60,17 +59,10 @@ export const api = {
   status: () => request<OllamaStatus>("/api/ollama/status"),
   models: async () =>
     (await request<{ models: Model[] }>("/api/ollama/models")).models,
-  allModels: async () =>
-    (await request<{ models: Model[] }>("/api/providers/models")).models,
   providers: async () =>
-    (await request<{ providers: ProviderStatus[] }>("/api/providers"))
-      .providers,
+    (await request<{ providers: ProviderStatus[] }>("/api/providers")).providers,
   providerModels: async (provider: string) =>
-    (
-      await request<{ models: (Model | string)[] }>(
-        `/api/providers/${encodeURIComponent(provider)}/models`,
-      )
-    ).models,
+    (await request<{ models: string[] }>(`/api/providers/${encodeURIComponent(provider)}/models`)).models,
   conversations: async (search = "") =>
     (
       await request<{ conversations: Conversation[] }>(
@@ -79,20 +71,10 @@ export const api = {
     ).conversations,
   conversation: (id: string) =>
     request<Conversation>(`/api/conversations/${id}`),
-  create: (
-    model: string | null,
-    provider = "ollama",
-    temperature = 0.7,
-    maxTokens = 4096,
-  ) =>
+  create: (model: string | null) =>
     request<Conversation>("/api/conversations", {
       method: "POST",
-      body: JSON.stringify({
-        model,
-        provider,
-        temperature,
-        max_tokens: maxTokens,
-      }),
+      body: JSON.stringify({ model }),
     }),
   rename: (id: string, title: string) =>
     request<Conversation>(`/api/conversations/${id}`, {
@@ -101,18 +83,6 @@ export const api = {
     }),
   remove: (id: string) =>
     request<void>(`/api/conversations/${id}`, { method: "DELETE" }),
-  deleteMessage: (conversationId: string, messageId: string) =>
-    request<void>(
-      `/api/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}`,
-      { method: "DELETE" },
-    ),
-  clearMessages: (conversationId: string) =>
-    request<void>(
-      `/api/conversations/${encodeURIComponent(conversationId)}/messages`,
-      { method: "DELETE" },
-    ),
-  exportUrl: (id: string, format: "markdown" | "json" = "markdown") =>
-    `/api/conversations/${encodeURIComponent(id)}/export?format=${format}`,
   compare: async (prompt: string, models: string[]) =>
     (
       await request<{ results: ComparisonResult[] }>(
@@ -132,20 +102,15 @@ export const api = {
     request<void>(`/api/tools/documents/${encodeURIComponent(id)}`, {
       method: "DELETE",
     }),
-  askDocuments: (model: string, question: string, provider = "ollama") =>
+  askDocuments: (model: string, question: string) =>
     request<ToolResult>("/api/tools/documents/ask", {
       method: "POST",
-      body: JSON.stringify({ model, question, provider }),
+      body: JSON.stringify({ model, question }),
     }),
-  explainCode: (
-    model: string,
-    code: string,
-    question: string,
-    provider = "ollama",
-  ) =>
+  explainCode: (model: string, code: string, question: string) =>
     request<ToolResult>("/api/tools/explain-code", {
       method: "POST",
-      body: JSON.stringify({ model, code, question, provider }),
+      body: JSON.stringify({ model, code, question }),
     }),
   stream: async (
     id: string,
@@ -153,21 +118,11 @@ export const api = {
     message: string,
     onToken: (text: string) => void,
     signal: AbortSignal,
-    provider = "ollama",
-    temperature = 0.7,
-    maxTokens = 4096,
   ) => {
     const response = await fetch("/api/chat/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        conversation_id: id,
-        model,
-        provider,
-        message,
-        temperature,
-        max_tokens: maxTokens,
-      }),
+      body: JSON.stringify({ conversation_id: id, model, message }),
       signal,
     });
     if (!response.ok) {
@@ -206,13 +161,7 @@ export const api = {
     const response = await fetch("/api/providers/chat/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        provider,
-        model,
-        messages,
-        temperature,
-        max_tokens: maxTokens,
-      }),
+      body: JSON.stringify({ provider, model, messages, temperature, max_tokens: maxTokens }),
       signal,
     });
     if (!response.ok) {

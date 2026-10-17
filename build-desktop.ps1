@@ -1,4 +1,4 @@
-# Build Local AI Control Center as a standalone Windows .exe
+﻿# Build Local AI Control Center as a standalone Windows .exe
 #
 # This script:
 # 1. Builds the React frontend
@@ -129,7 +129,7 @@ if (Test-Path $EXE_DIR) {
         Write-Host "Executable: $EXE_PATH" -ForegroundColor White
         Write-Host "Total size: ${totalMB} MB" -ForegroundColor White
         Write-Host "" -ForegroundColor White
-        Write-Host "The entire folder is portable — copy it anywhere and run the .exe." -ForegroundColor Gray
+        Write-Host "The entire folder is portable - copy it anywhere and run the .exe." -ForegroundColor Gray
         Write-Host "No installation, no PowerShell, no browser tabs needed." -ForegroundColor Gray
     } else {
         Write-Host "ERROR: .exe not found at expected location!" -ForegroundColor Red

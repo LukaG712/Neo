@@ -1,5 +1,5 @@
-"""
-Local AI Control Center — Desktop Launcher
+﻿"""
+Local AI Control Center - Desktop Launcher
 
 Runs the FastAPI backend in a background thread and displays the React frontend
 inside a native OS window using pywebview.  No browser tab, no PowerShell window.
@@ -30,7 +30,7 @@ else:
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # ---------------------------------------------------------------------------
-# Environment preparation — point the backend at a local-only port and the
+# Environment preparation - point the backend at a local-only port and the
 # correct database path.
 # ---------------------------------------------------------------------------
 os.environ.setdefault("LACC_HOST", "127.0.0.1")
