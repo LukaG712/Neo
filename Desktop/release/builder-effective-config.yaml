@@ -1,0 +1,30 @@
+directories:
+  output: release
+  buildResources: build
+appId: com.localai.desktop
+productName: Local AI Control Center
+files:
+  - filter:
+      - electron/**/*
+      - ../frontend/dist/**/*
+      - ../backend/**/*
+      - '!**/node_modules/**/*'
+      - '!**/.venv/**/*'
+extraMetadata:
+  main: electron/main.js
+asar: false
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+        - ia32
+    - target: portable
+      arch:
+        - x64
+        - ia32
+  sign: null
+  signAndEditExecutable: false
+  signDlls: false
+publish: null
+electronVersion: 28.3.3
