@@ -24,8 +24,6 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178c6.svg)](https://typescriptlang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> Liever in het Nederlands? Lees de [Nederlandstalige README](README.nl.md).
-
 ---
 
 ## Table of Contents
