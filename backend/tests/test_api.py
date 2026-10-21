@@ -150,7 +150,7 @@ def test_document_tool_persists_and_answers_with_relevant_local_context(client):
 
     async def fake_generate(model, prompt):
         assert model == "model-a"
-        assert "Orbis stores conversation history in SQLite." in prompt
+        assert "Neo stores conversation history in SQLite." in prompt
         assert "Unrelated note about growing tomatoes." not in prompt
         return {"response": "History is stored in SQLite.", "eval_count": 7, "eval_duration": 1_000_000_000}
 
@@ -159,7 +159,7 @@ def test_document_tool_persists_and_answers_with_relevant_local_context(client):
         "/api/tools/documents",
         json={
             "name": "notes.md",
-            "content": "Orbis stores conversation history in SQLite.\n\nUnrelated note about growing tomatoes.",
+            "content": "Neo stores conversation history in SQLite.\n\nUnrelated note about growing tomatoes.",
         },
     )
     assert created.status_code == 201

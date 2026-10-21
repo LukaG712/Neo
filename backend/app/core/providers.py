@@ -1,4 +1,4 @@
-"""API provider abstraction for Orbis.
+"""API provider abstraction for Neo.
 
 Supports Ollama (local) and cloud providers (OpenAI, Anthropic, Google Gemini).
 API keys are configured server-side via environment variables and are never

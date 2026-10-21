@@ -1,19 +1,31 @@
                                                                                     
 ```
-       ____     ___________      ______  ______    ____________             _____   
-   ____\_  \__  \          \     \     \|\     \  /            \       _____\    \  
-  /     /     \  \    /\    \     |     |\|     ||\___/\  \\___/|     /    / \    | 
- /     /\      |  |   \_\    |    |     |/____ /  \|____\  \___|/    |    |  /___/| 
-|     |  |     |  |      ___/     |     |\     \        |  |      ____\    \ |   || 
-|     |  |     |  |      \  ____  |     | |     |  __  /   / __  /    /\    \|___|/ 
-|     | /     /| /     /\ \/    \ |     | |     | /  \/   /_/  ||    |/ \    \      
-|\     \_____/ |/_____/ |\______|/_____/|/_____/||____________/||\____\ /____/|     
-| \_____\   | / |     | | |     ||    |||     | ||           | /| |   ||    | |     
- \ |    |___|/  |_____|/ \|_____||____|/|_____|/ |___________|/  \|___||____|/      
-  \|____|                                                                            
+                           _____                  
+ _____    _____       _____\    \       ____      
+|\    \   \    \     /    / |    |  ____\_  \__   
+ \\    \   |    |   /    /  /___/| /     /     \  
+  \\    \  |    |  |    |__ |___|//     /\      | 
+   \|    \ |    |  |       \     |     |  |     | 
+    |     \|    |  |     __/ __  |     |  |     | 
+   /     /\      \ |\    \  /  \ |     | /     /| 
+  /_____/ /______/|| \____\/    ||\     \_____/ | 
+ |      | |     | || |    |____/|| \_____\   | /  
+ |______|/|_____|/  \|____|   | | \ |    |___|/   
+                          |___|/   \|____|        
+                                                  
+                                                  
+                                                  
+                                                  
+                                                  
+                                                  
+                                                  
+                                                  
+                                                  
+                                                  
+                                                  
 ```
 
-# Orbis
+# Neo
 
 > **Een privé, lokale AI-werkruimte**: chat met Ollama- en cloudmodellen, vergelijk antwoorden, organiseer gesprekken en analyseer je gebruik, alles draaiend op je eigen computer.
 
@@ -71,7 +83,7 @@
 
 ## Wat is dit?
 
-Orbis is een lokaal draaiend dashboard voor AI-modellen. Je kunt gesprekken streamen, eerdere gesprekken beheren, generatiestatistieken bekijken en dezelfde prompt met meerdere geïnstalleerde modellen vergelijken. De frontend en API draaien op localhost; gesprekken en berichten worden opgeslagen in een lokale SQLite-database.
+Neo is een lokaal draaiend dashboard voor AI-modellen. Je kunt gesprekken streamen, eerdere gesprekken beheren, generatiestatistieken bekijken en dezelfde prompt met meerdere geïnstalleerde modellen vergelijken. De frontend en API draaien op localhost; gesprekken en berichten worden opgeslagen in een lokale SQLite-database.
 
 Ondersteunt **Ollama** voor lokale modellen en **cloudproviders** (OpenAI, Anthropic, Google Gemini) via configureerbare API-sleutels, alles vanuit één uniforme interface.
 
@@ -272,12 +284,12 @@ De output is een zelfstandige map in `dist-desktop/`: kopieer het overal naartoe
 
 ## Configuratie
 
-Standaard gebruikt de app Ollama op `http://127.0.0.1:11434`, slaat SQLite-gegevens op in `backend/data/orbis.db` en bindt de API aan localhost. Optionele API-instellingen gebruiken het voorvoegsel `LACC_`:
+Standaard gebruikt de app Ollama op `http://127.0.0.1:11434`, slaat SQLite-gegevens op in `backend/data/Neo.db` en bindt de API aan localhost. Optionele API-instellingen gebruiken het voorvoegsel `LACC_`:
 
 | Variabele | Standaardwaarde | Doel |
 | --- | --- | --- |
 | `LACC_OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Adres van de Ollama HTTP-API |
-| `LACC_DATABASE_URL` | `sqlite:///./data/orbis.db` | Pad naar de SQLite-database (relatief aan `backend/`) |
+| `LACC_DATABASE_URL` | `sqlite:///./data/Neo.db` | Pad naar de SQLite-database (relatief aan `backend/`) |
 | `LACC_HOST` | `127.0.0.1` | Bindadres van de API |
 | `LACC_PORT` | `8000` | API-poort |
 | `LACC_REQUEST_TIMEOUT_SECONDS` | `10` | Time-out voor verbindingen en verzoeken aan Ollama; het lezen van antwoorden mag maximaal 5 minuten duren |
@@ -516,7 +528,7 @@ npm run build
 ## Projectstructuur
 
 ```text
-Orbis/
+Neo/
 ├── backend/                    # FastAPI API-server
 │   ├── app/
 │   │   ├── api/                # API-route modules

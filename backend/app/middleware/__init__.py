@@ -1,1 +1,1 @@
-"""Middleware package for Orbis backend."""
+"""Middleware package for Neo backend."""

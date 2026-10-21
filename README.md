@@ -1,19 +1,31 @@
                                                                                     
- ```
-       ____     ___________      ______  ______    ____________             _____   
-   ____\_  \__  \          \     \     \|\     \  /            \       _____\    \  
-  /     /     \  \    /\    \     |     |\|     ||\___/\  \\___/|     /    / \    | 
- /     /\      |  |   \_\    |    |     |/____ /  \|____\  \___|/    |    |  /___/| 
-|     |  |     |  |      ___/     |     |\     \        |  |      ____\    \ |   || 
-|     |  |     |  |      \  ____  |     | |     |  __  /   / __  /    /\    \|___|/ 
-|     | /     /| /     /\ \/    \ |     | |     | /  \/   /_/  ||    |/ \    \      
-|\     \_____/ |/_____/ |\______|/_____/|/_____/||____________/||\____\ /____/|     
-| \_____\   | / |     | | |     ||    |||     | ||           | /| |   ||    | |     
- \ |    |___|/  |_____|/ \|_____||____|/|_____|/ |___________|/  \|___||____|/      
-  \|____|                                                                            
- ```
+```
+                           _____                  
+ _____    _____       _____\    \       ____      
+|\    \   \    \     /    / |    |  ____\_  \__   
+ \\    \   |    |   /    /  /___/| /     /     \  
+  \\    \  |    |  |    |__ |___|//     /\      | 
+   \|    \ |    |  |       \     |     |  |     | 
+    |     \|    |  |     __/ __  |     |  |     | 
+   /     /\      \ |\    \  /  \ |     | /     /| 
+  /_____/ /______/|| \____\/    ||\     \_____/ | 
+ |      | |     | || |    |____/|| \_____\   | /  
+ |______|/|_____|/  \|____|   | | \ |    |___|/   
+                          |___|/   \|____|        
+                                                  
+                                                  
+                                                  
+                                                  
+                                                  
+                                                  
+                                                  
+                                                  
+                                                  
+                                                  
+                                                  
+```
 
-# Orbis
+# Neo
 
 > **A private, local-first AI workspace**: chat with Ollama and cloud models, compare responses, organize conversations, and analyze your usage, all running on your machine.
 
@@ -71,7 +83,7 @@
 
 ## What is this?
 
-Orbis is a locally running dashboard for AI models. Stream conversations, manage chat history, inspect generation statistics, and compare the same prompt across multiple installed models. The frontend and API run on localhost; conversations and messages are stored in a local SQLite database.
+Neo is a locally running dashboard for AI models. Stream conversations, manage chat history, inspect generation statistics, and compare the same prompt across multiple installed models. The frontend and API run on localhost; conversations and messages are stored in a local SQLite database.
 
 Supports **Ollama** for local models and **cloud providers** (OpenAI, Anthropic, Google Gemini) via configurable API keys, all from a single unified interface.
 
@@ -160,7 +172,7 @@ In the conversation list, the highlight also follows the mouse. Shortcut hints a
 | Frontend | React 18, TypeScript 5, Vite |
 | API | Python 3.11+, FastAPI |
 | Storage | SQLite with foreign key constraints |
-| Orbis | Ollama HTTP API |
+| Neo | Ollama HTTP API |
 | Cloud AI | OpenAI, Anthropic, Google Gemini (via server-side API keys) |
 | Python environment | uv (fast Python package installer) |
 | Backend tests | pytest with mocked Ollama requests |
@@ -276,12 +288,12 @@ The output is a self-contained folder in `dist-desktop/`: copy it anywhere and r
 
 ## Configuration
 
-Defaults target Ollama at `http://127.0.0.1:11434`, store SQLite data at `backend/data/orbis.db`, and bind the API to localhost. Optional API settings use the `LACC_` prefix:
+Defaults target Ollama at `http://127.0.0.1:11434`, store SQLite data at `backend/data/neo.db`, and bind the API to localhost. Optional API settings use the `LACC_` prefix:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `LACC_OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Ollama HTTP API address |
-| `LACC_DATABASE_URL` | `sqlite:///./data/orbis.db` | SQLite database path (relative to `backend/`) |
+| `LACC_DATABASE_URL` | `sqlite:///./data/neo.db` | SQLite database path (relative to `backend/`) |
 | `LACC_HOST` | `127.0.0.1` | API bind address |
 | `LACC_PORT` | `8000` | API port |
 | `LACC_REQUEST_TIMEOUT_SECONDS` | `10` | Ollama connection and request timeout; response reads allow up to 5 minutes |
@@ -535,7 +547,7 @@ npm run build
 ## Project Structure
 
 ```text
-Orbis/
+Neo/
 ├── backend/                    # FastAPI API server
 │   ├── app/
 │   │   ├── api/                # API route modules

@@ -862,7 +862,7 @@ export default function App() {
               </span>
             </button>
             <span className="topbar-brand">
-              orbis<span className="brand-period">.</span>
+              Neo<span className="brand-period">.</span>
             </span>
           </div>
           <nav className="view-switch" aria-label={t("workspace")}>
@@ -1946,7 +1946,7 @@ export default function App() {
                 <span className="footer-dot" /> {t("inferenceLocal")}
               </span>
               <span>
-                Orbis <b>·</b> v0.1
+                Neo <b>·</b> v0.1
               </span>
             </footer>
           </section>

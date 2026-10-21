@@ -125,7 +125,7 @@ export default function Tools({
       <header className="tools-header">
         <div>
           <div className="tools-kicker">
-            <span /> {nl ? "LOKALE AI-WERKPLAATS" : "Orbis WORKBENCH"}
+            <span /> {nl ? "LOKALE AI-WERKPLAATS" : "Neo WORKBENCH"}
           </div>
           <h1>
             {tab === "documents"

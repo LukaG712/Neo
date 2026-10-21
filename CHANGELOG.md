@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Orbis will be documented in this file.
+All notable changes to Neo will be documented in this file.
 
 ## [1.0.0] - 2026-10-21
 

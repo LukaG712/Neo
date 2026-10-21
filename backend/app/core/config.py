@@ -4,9 +4,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "Orbis"
+    app_name: str = "Neo"
     ollama_base_url: str = "http://127.0.0.1:11434"
-    database_url: str = "sqlite:///./data/orbis.db"
+    database_url: str = "sqlite:///./data/Neo.db"
     host: str = "127.0.0.1"
     port: int = 8000
     request_timeout_seconds: float = 10.0

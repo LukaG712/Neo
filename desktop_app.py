@@ -1,5 +1,5 @@
 """
-Orbis - Desktop Launcher
+Neo - Desktop Launcher
 
 Runs the FastAPI backend in a background thread and displays the React frontend
 inside a native OS window using pywebview.  No browser tab, no PowerShell window.
@@ -35,7 +35,7 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 # ---------------------------------------------------------------------------
 os.environ.setdefault("LACC_HOST", "127.0.0.1")
 os.environ.setdefault("LACC_PORT", "0")  # 0 ? pick a free port
-os.environ.setdefault("LACC_DATABASE_URL", f"sqlite:///{DATA_DIR}/orbis.db")
+os.environ.setdefault("LACC_DATABASE_URL", f"sqlite:///{DATA_DIR}/Neo.db")
 
 # Make sure the backend 'app' package is importable
 # In PyInstaller bundle, 'app' is in _internal/app (which is base_dir/_MEIPASS)
@@ -108,7 +108,7 @@ def create_window(port: int) -> None:
     webview.settings["ALLOW_DOWNLOADS"] = True
 
     window = webview.create_window(
-        "Orbis",
+        "Neo",
         api_url,
         width=1200,
         height=800,
@@ -122,7 +122,7 @@ def create_window(port: int) -> None:
 
 
 def main() -> None:
-    print("Starting Orbis...")
+    print("Starting Neo...")
     port = start_backend()
     # Give the backend a moment to fully initialize
     time.sleep(0.5)

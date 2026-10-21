@@ -1,4 +1,4 @@
-# Build Orbis as a standalone Windows .exe
+# Build Neo as a standalone Windows .exe
 #
 # This script:
 # 1. Builds the React frontend
@@ -20,7 +20,7 @@ $BACKEND_DIR = Join-Path $PROJECT_ROOT "backend"
 $OUTPUT_DIR = Join-Path $PROJECT_ROOT "dist-desktop"
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host " Orbis - Desktop Build" -ForegroundColor Cyan
+Write-Host " Neo - Desktop Build" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -83,7 +83,7 @@ Push-Location $BACKEND_DIR
 
 # Build using PyInstaller command line
 pyinstaller `
-    --name "Orbis" `
+    --name "Neo" `
     --windowed `
     --onedir `
     --noconfirm `
@@ -109,9 +109,9 @@ if ($LASTEXITCODE -ne 0) {
 Pop-Location
 
 # Check the output
-$EXE_DIR = Join-Path $OUTPUT_DIR "Orbis"
+$EXE_DIR = Join-Path $OUTPUT_DIR "Neo"
 if (Test-Path $EXE_DIR) {
-    $EXE_PATH = Join-Path $EXE_DIR "Orbis.exe"
+    $EXE_PATH = Join-Path $EXE_DIR "Neo.exe"
     if (Test-Path $EXE_PATH) {
         $size = (Get-Item $EXE_PATH).Length
         $sizeMB = [math]::Round($size / 1MB, 2)
