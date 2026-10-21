@@ -16,8 +16,6 @@
                                                   
 ```
 
-# Neo
-
 > **A private, local-first AI workspace**: chat with Ollama and cloud models, compare responses, organize conversations, and analyze your usage, all running on your machine.
 
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
