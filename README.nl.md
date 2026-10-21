@@ -87,6 +87,8 @@ Ondersteunt **Ollama** voor lokale modellen en **cloudproviders** (OpenAI, Anthr
 - **Antwoordregeneratie**: genereer het laatste AI-antwoord opnieuw met één klik
 - **Berichttijdstempels**: zie wanneer elk bericht is aangemaakt
 - **Kopiëren naar klembord**: één-klik-kopiëren op elk bericht met visuele feedback
+- **Berichtmarkeringen**: markeer belangrijke berichten voor snelle referentie
+- **Gesprekssamenvatting**: AI-gestuurde samenvatting van lange gesprekken
 - **Individuele berichten verwijderen** uit gesprekken
 - **Generatiestatistieken**: tijd, prompt-evaluatietijd, tokenaantal en tokens/seconde
 - **Markdown-weergave**: antwoorden opgemaakt met lijsten, tabellen, codeblokken en meer

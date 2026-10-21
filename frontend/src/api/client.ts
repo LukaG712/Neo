@@ -87,6 +87,13 @@ export type OverviewStats = {
   presets: number;
   quick_prompts: number;
 };
+export type Bookmark = {
+  message_id: string;
+  role: string;
+  content: string;
+  created_at: string;
+  bookmarked_at: string;
+};
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -349,4 +356,52 @@ export const api = {
   conversationStats: (conversationId: string) =>
     request<ConversationStats>(`/api/stats/conversations/${conversationId}`),
   overviewStats: () => request<OverviewStats>("/api/stats/overview"),
+  // Bookmarks
+  bookmarks: async (conversationId: string) =>
+    (await request<{ bookmarks: Bookmark[] }>(`/api/bookmarks/conversations/${conversationId}`)).bookmarks,
+  bookmarkMessage: (conversationId: string, messageId: string) =>
+    request<{ status: string }>(`/api/bookmarks/conversations/${conversationId}/messages/${messageId}`, {
+      method: "POST",
+    }),
+  removeBookmark: (conversationId: string, messageId: string) =>
+    request<{ status: string }>(`/api/bookmarks/conversations/${conversationId}/messages/${messageId}`, {
+      method: "DELETE",
+    }),
+  // Summary
+  summarize: async (
+    id: string,
+    model: string,
+    onToken: (text: string) => void,
+    signal: AbortSignal,
+  ) => {
+    const response = await fetch("/api/summary/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversation_id: id, model }),
+      signal,
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.detail || `Request failed (${response.status})`);
+    }
+    if (!response.body)
+      throw new Error("Streaming is not available in this browser.");
+    const reader = response.body.getReader(),
+      decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+      const events = buffer.split("\n\n");
+      buffer = events.pop() || "";
+      for (const raw of events) {
+        const line = raw.split("\n").find((item) => item.startsWith("data: "));
+        if (!line) continue;
+        const event = JSON.parse(line.slice(6));
+        if (event.type === "token") onToken(event.content);
+        if (event.type === "error") throw new Error(event.message);
+      }
+      if (done) break;
+    }
+  },
 };

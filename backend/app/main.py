@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.bookmarks import router as bookmarks_router
 from app.api.chat import router as chat_router
 from app.api.conversations import router as conversations_router
 from app.api.messages import router as messages_router
@@ -11,11 +12,13 @@ from app.api.presets import router as presets_router
 from app.api.prompts import router as prompts_router
 from app.api.providers import router as providers_router
 from app.api.stats import router as stats_router
+from app.api.summary import router as summary_router
 from app.api.tags import router as tags_router
 from app.api.tools import router as tools_router
 from app.core.config import settings
 from app.core.providers import ProviderRegistry
 from app.db.database import init_db
+from app.middleware.rate_limit import RateLimitMiddleware
 from app.ollama.client import OllamaClient, OllamaUnavailable
 
 
@@ -37,6 +40,8 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["Content-Type"],
 )
+app.add_middleware(RateLimitMiddleware)
+app.include_router(bookmarks_router)
 app.include_router(conversations_router)
 app.include_router(messages_router)
 app.include_router(chat_router)
@@ -45,6 +50,7 @@ app.include_router(presets_router)
 app.include_router(prompts_router)
 app.include_router(providers_router)
 app.include_router(stats_router)
+app.include_router(summary_router)
 app.include_router(tags_router)
 app.include_router(tools_router)
 

@@ -28,6 +28,9 @@ import {
   Lightbulb,
   Pin,
   Upload,
+  Bookmark,
+  BookmarkPlus,
+  FileText,
 } from "lucide-react";
 import {
   api,
@@ -40,6 +43,8 @@ import {
   type Tag as TagType,
   type QuickPrompt,
   type ConversationStats,
+  type OverviewStats,
+  type Bookmark as BookmarkType,
 } from "./api/client";
 import Playground from "./Playground";
 import Tools from "./Tools";
@@ -123,6 +128,13 @@ export default function App() {
   const [statsOpen, setStatsOpen] = useState(false);
   const [convStats, setConvStats] = useState<ConversationStats | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [summarizing, setSummarizing] = useState(false);
+  const [summaryText, setSummaryText] = useState("");
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [bookmarksMenu, setBookmarksMenu] = useState(false);
+  const [bookmarks, setBookmarks] = useState<BookmarkType[]>([]);
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const [overviewStats, setOverviewStats] = useState<OverviewStats | null>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
   const aborter = useRef<AbortController | null>(null);
@@ -235,11 +247,21 @@ export default function App() {
     if (active) {
       void loadConversationTags();
       void loadConversationStats();
+      void loadBookmarks();
     } else {
       setActiveTags([]);
       setConvStats(null);
+      setBookmarks([]);
+      setBookmarkedIds(new Set());
+      setSummaryText("");
+      setSummaryOpen(false);
     }
   }, [active?.id]);
+
+  // Load overview stats on mount
+  useEffect(() => {
+    void loadOverviewStats();
+  }, []);
   useEffect(() => {
     function onScroll() {
       setScrolled(window.scrollY > 8);
@@ -251,14 +273,37 @@ export default function App() {
 
   useEffect(() => {
     function shortcuts(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      const inInput = ["INPUT", "TEXTAREA"].includes((e.target as HTMLElement).tagName);
+      // Ctrl+N: New conversation
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "n") {
         e.preventDefault();
         setView("chat");
         void newConversation();
         return;
       }
+      // Ctrl+K: Focus search
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setView("chat");
+        setMenuOpen(true);
+        window.setTimeout(() => searchInput.current?.focus(), 60);
+        return;
+      }
+      // Ctrl+Enter: Send message (when in textarea)
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && inInput && !e.shiftKey) {
+        e.preventDefault();
+        void sendMessage();
+        return;
+      }
+      // Escape: Close menus
       if (e.key === "Escape") {
         setModelMenu(false);
+        setPresetsMenu(false);
+        setTagsMenu(false);
+        setPromptsMenu(false);
+        setBookmarksMenu(false);
+        setSettingsOpen(false);
+        setSummaryOpen(false);
         if (menuOpen) {
           e.preventDefault();
           setMenuOpen(false);
@@ -266,9 +311,10 @@ export default function App() {
         }
         return;
       }
+      // / : Focus search (not in input)
       if (
         e.key === "/" &&
-        !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement).tagName)
+        !inInput
       ) {
         e.preventDefault();
         setView("chat");
@@ -478,6 +524,75 @@ export default function App() {
     try {
       const stats = await api.conversationStats(active.id);
       setConvStats(stats);
+    } catch {}
+  }
+
+  async function loadBookmarks() {
+    if (!active) return;
+    try {
+      const list = await api.bookmarks(active.id);
+      setBookmarks(list);
+      setBookmarkedIds(new Set(list.map((b) => b.message_id)));
+    } catch {}
+  }
+
+  async function handleBookmarkMessage(messageId: string) {
+    if (!active) return;
+    try {
+      await api.bookmarkMessage(active.id, messageId);
+      setBookmarkedIds((prev) => {
+        const next = new Set(prev);
+        next.add(messageId);
+        return next;
+      });
+      void loadBookmarks();
+    } catch {}
+  }
+
+  async function handleRemoveBookmark(messageId: string) {
+    if (!active) return;
+    try {
+      await api.removeBookmark(active.id, messageId);
+      setBookmarkedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(messageId);
+        return next;
+      });
+      void loadBookmarks();
+    } catch {}
+  }
+
+  async function handleSummarize() {
+    if (!active || !model || summarizing) return;
+    setSummarizing(true);
+    setSummaryText("");
+    setSummaryOpen(true);
+    setError("");
+    const controller = new AbortController();
+    aborter.current = controller;
+    try {
+      await api.summarize(
+        active.id,
+        model,
+        (token) => {
+          setSummaryText((prev) => prev + token);
+        },
+        controller.signal,
+      );
+    } catch (e) {
+      if ((e as Error).name !== "AbortError") {
+        setError((e as Error).message);
+      }
+    } finally {
+      setSummarizing(false);
+      aborter.current = null;
+    }
+  }
+
+  async function loadOverviewStats() {
+    try {
+      const stats = await api.overviewStats();
+      setOverviewStats(stats);
     } catch {}
   }
 
@@ -1142,6 +1257,55 @@ export default function App() {
             >
               <BarChart3 size={16} />
             </button>
+            <button
+              type="button"
+              className="icon-btn summarize-btn"
+              onClick={() => void handleSummarize()}
+              disabled={!active || !model || summarizing}
+              aria-label={t("summarize")}
+              title={t("summarize")}
+            >
+              <FileText size={16} />
+            </button>
+            <div style={{position: "relative"}}>
+              <button
+                type="button"
+                className="icon-btn bookmarks-btn"
+                onClick={() => {
+                  setBookmarksMenu((v) => !v);
+                  if (active && !bookmarks.length) loadBookmarks();
+                }}
+                disabled={!active}
+                aria-label={t("bookmarks")}
+                title={t("bookmarks")}
+              >
+                <Bookmark size={16} />
+              </button>
+              {bookmarksMenu && (
+                <div className="bookmarks-menu">
+                  <h4>{t("bookmarks")}</h4>
+                  {bookmarks.length === 0 ? (
+                    <div className="bookmarks-empty">{t("noBookmarks")}</div>
+                  ) : (
+                    <div className="bookmarks-list">
+                      {bookmarks.map((bm) => (
+                        <div key={bm.message_id} className="bookmark-item">
+                          <div className="bookmark-role">{bm.role === "user" ? t("you") : t("assistant")}</div>
+                          <div className="bookmark-content">{bm.content}</div>
+                          <button
+                            className="bookmark-remove"
+                            onClick={() => void handleRemoveBookmark(bm.message_id)}
+                            title={t("unbookmark")}
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <div
               className="language-switch"
               role="group"
@@ -1251,6 +1415,51 @@ export default function App() {
               <div className="settings-actions">
                 <button onClick={() => setStatsOpen(false)}>{language === "nl" ? "Sluiten" : "Close"}</button>
               </div>
+            </div>
+          </div>
+        )}
+        {summaryOpen && active && (
+          <div className="settings-modal-overlay" onClick={() => {
+            if (summarizing) {
+              aborter.current?.abort();
+            }
+            setSummaryOpen(false);
+          }}>
+            <div className="settings-modal summary-modal" onClick={e => e.stopPropagation()}>
+              <div className="summary-header">
+                <h3>{t("summaryTitle")}</h3>
+                {summarizing && <span className="summarizing-label">{t("summarizing")}</span>}
+                <button className="summary-close" onClick={() => {
+                  if (summarizing) aborter.current?.abort();
+                  setSummaryOpen(false);
+                }}>
+                  <X size={16} />
+                </button>
+              </div>
+              {summaryText ? (
+                <div className="summary-content">
+                  <MarkdownContent className="markdown-body">{summaryText}</MarkdownContent>
+                </div>
+              ) : !summarizing ? (
+                <div className="summary-empty">{language === "nl" ? "Nog geen samenvatting" : "No summary yet"}</div>
+              ) : null}
+            </div>
+          </div>
+        )}
+        {/* Overview stats in sidebar footer */}
+        {overviewStats && (
+          <div className="overview-stats">
+            <div className="overview-stat">
+              <span className="overview-stat-value">{overviewStats.conversations}</span>
+              <span className="overview-stat-label">{t("conversations").toLowerCase()}</span>
+            </div>
+            <div className="overview-stat">
+              <span className="overview-stat-value">{overviewStats.messages}</span>
+              <span className="overview-stat-label">{language === "nl" ? "berichten" : "messages"}</span>
+            </div>
+            <div className="overview-stat">
+              <span className="overview-stat-value">{overviewStats.total_tokens.toLocaleString()}</span>
+              <span className="overview-stat-label">{t("tokens").toLowerCase()}</span>
             </div>
           </div>
         )}
@@ -1457,6 +1666,22 @@ export default function App() {
                             aria-label={t("copy")}
                           >
                             {copiedId === message.id ? <Check size={12} /> : <Clipboard size={12} />}
+                          </button>
+                          <button
+                            className="message-action-btn"
+                            onClick={() => {
+                              if (bookmarkedIds.has(message.id)) {
+                                void handleRemoveBookmark(message.id);
+                              } else {
+                                void handleBookmarkMessage(message.id);
+                              }
+                            }}
+                            title={bookmarkedIds.has(message.id) ? t("unbookmark") : t("bookmark")}
+                            aria-label={bookmarkedIds.has(message.id) ? t("unbookmark") : t("bookmark")}
+                          >
+                            {bookmarkedIds.has(message.id)
+                              ? <Bookmark size={12} style={{fill: "var(--accent)"}} />
+                              : <BookmarkPlus size={12} />}
                           </button>
                         </div>
                       </div>

@@ -87,6 +87,8 @@ Supports **Ollama** for local models and **cloud providers** (OpenAI, Anthropic,
 - **Response regeneration**: re-generate the last AI response with one click
 - **Message timestamps**: see when each message was created
 - **Copy to clipboard**: one-click copy on every message with visual feedback
+- **Message bookmarks**: bookmark important messages for quick reference
+- **Conversation summary**: AI-powered summary of long conversations
 - **Delete individual messages** from conversations
 - **Generation statistics**: time, prompt eval time, token count, and tokens/second
 - **Markdown rendering**: responses formatted with lists, tables, code blocks, and more
@@ -107,6 +109,7 @@ Supports **Ollama** for local models and **cloud providers** (OpenAI, Anthropic,
 - **Model presets**: save and apply model configurations (model, system prompt, temperature, max tokens)
 - **Quick Prompts**: save reusable prompt templates with categories and quick insertion
 - **Conversation statistics**: view message counts, token usage, average speed, and more
+- **Workspace overview stats**: see total conversations, messages, and tokens at a glance
 - **Provider switching**: switch between Ollama and cloud providers per conversation
 
 ### Tools
@@ -120,7 +123,8 @@ Supports **Ollama** for local models and **cloud providers** (OpenAI, Anthropic,
 - **Dark/light theme**: responsive interface that adapts to your system preference
 - **Bilingual support**: English and Dutch interface, language preference saved locally
 - **Loading, empty, and error states**: clear feedback for every interaction
-- **Keyboard navigation**: full keyboard support for conversation list and controls
+- **Keyboard shortcuts**: Ctrl+N for new chat, Ctrl+K for search, Ctrl+Enter to send, Escape to close menus
+- **Rate limiting**: built-in rate limiting to protect against accidental abuse
 - **Icon buttons**: intuitive icons from Lucide React for all actions
 
 ### Desktop App
@@ -137,11 +141,13 @@ Supports **Ollama** for local models and **cloud providers** (OpenAI, Anthropic,
 | Shortcut | Action |
 | --- | --- |
 | `/` | Open the conversations menu and focus the search field |
-| `⌘ K` / `Ctrl K` | Start a new conversation |
+| `Ctrl N` | Start a new conversation |
+| `Ctrl K` | Focus the search field |
+| `Ctrl Enter` | Send message (when in text input) |
 | `↑` / `↓` | Move the highlight through the conversation list |
 | `Home` / `End` | Jump to the first / last conversation |
 | `Enter` | Open the highlighted conversation |
-| `Esc` | Close the conversations menu or model picker |
+| `Esc` | Close any open menu or modal |
 
 In the conversation list, the highlight also follows the mouse. Shortcut hints appear when you hover or focus a control.
 
@@ -432,6 +438,20 @@ data: {"type": "done", "total_duration": 1234567890, "eval_count": 150, "eval_du
 | `GET` | `/api/stats/conversations/{id}` | Get detailed stats for a conversation |
 | `GET` | `/api/stats/overview` | Get overview stats for all conversations |
 
+### Bookmarks
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/api/bookmarks/conversations/{id}` | List bookmarked messages |
+| `POST` | `/api/bookmarks/conversations/{id}/messages/{mid}` | Bookmark a message |
+| `DELETE` | `/api/bookmarks/conversations/{id}/messages/{mid}` | Remove a bookmark |
+
+### Summary
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `POST` | `/api/summary/stream` | Stream an AI-generated conversation summary |
+
 **Conversation stats response:**
 ```json
 {
@@ -471,6 +491,7 @@ The application uses SQLite with the following tables:
 | `tags` | Named, colored tags for organization |
 | `conversation_tags` | Many-to-many mapping between conversations and tags |
 | `quick_prompts` | Reusable prompt templates with categories |
+| `bookmarks` | Bookmarked messages for quick reference |
 
 All tables use UUIDs as primary keys. Foreign keys are enforced with cascading deletes. The database auto-creates on first run with backward-compatible migrations for new columns.
 

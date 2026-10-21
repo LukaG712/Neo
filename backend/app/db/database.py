@@ -81,6 +81,13 @@ def init_db() -> None:
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS bookmarks (
+                id TEXT PRIMARY KEY,
+                conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+                message_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+                created_at TEXT NOT NULL,
+                UNIQUE(conversation_id, message_id)
+            );
         """)
         # Add system_prompt column if it doesn't exist (migration)
         try:

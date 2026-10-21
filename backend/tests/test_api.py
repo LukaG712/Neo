@@ -10,8 +10,11 @@ from app.ollama.client import OllamaUnavailable
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     from app.core.config import settings
+    from app.middleware.rate_limit import rate_limiter
 
     monkeypatch.setattr(settings, "database_url", f"sqlite:///{tmp_path / 'test.db'}")
+    # Reset rate limiter for each test
+    rate_limiter.requests.clear()
     with TestClient(app) as test_client:
         app.state.ollama = AsyncMock()
         yield test_client
@@ -1232,3 +1235,161 @@ def test_search_no_results(client):
     assert response.status_code == 200
     convs = response.json()["conversations"]
     assert len(convs) == 0
+
+
+# ---- Bookmarks Tests ----
+
+def test_bookmark_message(client):
+    """Test bookmarking a message."""
+    conv = client.post("/api/conversations", json={"title": "Bookmark Test"}).json()
+    conv_id = conv["id"]
+    msg = client.post(f"/api/conversations/{conv_id}/messages", json={
+        "role": "user", "content": "Important message"
+    }).json()
+    msg_id = msg["id"]
+
+    response = client.post(f"/api/bookmarks/conversations/{conv_id}/messages/{msg_id}")
+    assert response.status_code == 200
+    assert response.json()["status"] == "bookmarked"
+
+
+def test_bookmark_duplicate_returns_409(client):
+    """Test bookmarking an already bookmarked message returns 409."""
+    conv = client.post("/api/conversations", json={"title": "Dup Bookmark"}).json()
+    conv_id = conv["id"]
+    msg = client.post(f"/api/conversations/{conv_id}/messages", json={
+        "role": "user", "content": "Test"
+    }).json()
+    msg_id = msg["id"]
+
+    client.post(f"/api/bookmarks/conversations/{conv_id}/messages/{msg_id}")
+    response = client.post(f"/api/bookmarks/conversations/{conv_id}/messages/{msg_id}")
+    assert response.status_code == 409
+
+
+def test_bookmark_nonexistent_message(client):
+    """Test bookmarking a non-existent message returns 404."""
+    conv = client.post("/api/conversations", json={"title": "Test"}).json()
+    response = client.post(f"/api/bookmarks/conversations/{conv['id']}/messages/nonexistent")
+    assert response.status_code == 404
+
+
+def test_get_bookmarks(client):
+    """Test getting bookmarks for a conversation."""
+    conv = client.post("/api/conversations", json={"title": "Bookmark List"}).json()
+    conv_id = conv["id"]
+    msg = client.post(f"/api/conversations/{conv_id}/messages", json={
+        "role": "assistant", "content": "Bookmarked response"
+    }).json()
+
+    client.post(f"/api/bookmarks/conversations/{conv_id}/messages/{msg['id']}")
+    response = client.get(f"/api/bookmarks/conversations/{conv_id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["bookmarks"]) == 1
+    assert data["bookmarks"][0]["message_id"] == msg["id"]
+    assert data["bookmarks"][0]["role"] == "assistant"
+
+
+def test_remove_bookmark(client):
+    """Test removing a bookmark."""
+    conv = client.post("/api/conversations", json={"title": "Remove Bookmark"}).json()
+    conv_id = conv["id"]
+    msg = client.post(f"/api/conversations/{conv_id}/messages", json={
+        "role": "user", "content": "Test"
+    }).json()
+    msg_id = msg["id"]
+
+    client.post(f"/api/bookmarks/conversations/{conv_id}/messages/{msg_id}")
+    response = client.delete(f"/api/bookmarks/conversations/{conv_id}/messages/{msg_id}")
+    assert response.status_code == 200
+    assert response.json()["status"] == "removed"
+
+    # Verify bookmark is gone
+    response = client.get(f"/api/bookmarks/conversations/{conv_id}")
+    assert len(response.json()["bookmarks"]) == 0
+
+
+def test_remove_nonexistent_bookmark(client):
+    """Test removing a non-existent bookmark returns 404."""
+    conv = client.post("/api/conversations", json={"title": "Test"}).json()
+    response = client.delete(f"/api/bookmarks/conversations/{conv['id']}/messages/nonexistent")
+    assert response.status_code == 404
+
+
+def test_get_bookmarks_nonexistent_conversation(client):
+    """Test getting bookmarks for non-existent conversation returns 404."""
+    response = client.get("/api/bookmarks/conversations/nonexistent")
+    assert response.status_code == 404
+
+
+# ---- Summary Tests ----
+
+def test_summarize_conversation(client):
+    """Test summarizing a conversation streams tokens."""
+    conv = client.post("/api/conversations", json={"title": "Summary Test"}).json()
+    conv_id = conv["id"]
+    client.post(f"/api/conversations/{conv_id}/messages", json={
+        "role": "user", "content": "What is Python?"
+    })
+    client.post(f"/api/conversations/{conv_id}/messages", json={
+        "role": "assistant", "content": "Python is a programming language."
+    })
+
+    async def fake_stream(model, messages):
+        assert model == "qwen2.5:7b"
+        yield {"message": {"content": "Summary: "}, "done": False}
+        yield {"message": {"content": "Python discussion."}, "done": True}
+
+    app.state.ollama.chat_stream = fake_stream
+    response = client.post("/api/summary/stream", json={
+        "conversation_id": conv_id,
+        "model": "qwen2.5:7b",
+    })
+    assert response.status_code == 200
+    assert '"content": "Summary: "' in response.text
+
+
+def test_summarize_nonexistent_conversation(client):
+    """Test summarizing non-existent conversation returns 404."""
+    response = client.post("/api/summary/stream", json={
+        "conversation_id": "nonexistent",
+        "model": "qwen2.5:7b",
+    })
+    assert response.status_code == 404
+
+
+def test_summarize_empty_conversation(client):
+    """Test summarizing empty conversation returns 400."""
+    conv = client.post("/api/conversations", json={"title": "Empty"}).json()
+    response = client.post("/api/summary/stream", json={
+        "conversation_id": conv["id"],
+        "model": "qwen2.5:7b",
+    })
+    assert response.status_code == 400
+
+
+# ---- Rate Limiting Tests ----
+
+def test_rate_limiter_allows_requests(client):
+    """Test that rate limiter allows requests under the limit."""
+    from app.middleware.rate_limit import rate_limiter
+    # Reset the limiter for testing
+    rate_limiter.requests.clear()
+
+    # Should allow requests
+    for _ in range(10):
+        response = client.get("/api/health")
+        assert response.status_code == 200
+
+
+def test_health_check_skips_rate_limit(client):
+    """Test that health checks are not rate limited."""
+    from app.middleware.rate_limit import rate_limiter
+    rate_limiter.requests.clear()
+    # Exhaust the rate limit
+    rate_limiter.requests["test"] = [1.0] * 60
+
+    # Health check should still work
+    response = client.get("/api/health")
+    assert response.status_code == 200
