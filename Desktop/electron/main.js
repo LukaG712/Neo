@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, Tray, Menu } = require("electron");
 const path = require("path");
 const { spawn } = require("child_process");
 const http = require("http");
@@ -7,6 +7,7 @@ const fs = require("fs");
 let mainWindow = null;
 let backendProcess = null;
 let proxyServer = null;
+let tray = null;
 
 const FRONTEND_DIST = path.join(__dirname, "..", "frontend", "dist");
 const BACKEND_PORT = 8000;
@@ -108,6 +109,64 @@ function serveStatic(req, res, requestUrl) {
   });
 }
 
+function createTray() {
+  // Create tray icon
+  const iconPath = path.join(__dirname, "..", "build", "icon.png");
+  let trayIcon = null;
+  
+  // Fallback: create a simple icon if not found
+  if (fs.existsSync(iconPath)) {
+    trayIcon = iconPath;
+  }
+  
+  tray = new Tray(trayIcon || createFallbackIcon());
+  
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: "Show Local AI Control Center",
+      click: () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.show();
+          if (process.platform === "darwin") {
+            app.dock.show();
+          }
+        }
+      }
+    },
+    { type: "separator" },
+    {
+      label: "Quit",
+      click: () => {
+        app.isQuitting = true;
+        app.quit();
+      }
+    }
+  ]);
+  
+  tray.setToolTip("Local AI Control Center");
+  tray.setContextMenu(contextMenu);
+  
+  tray.on("click", () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isVisible()) {
+        mainWindow.focus();
+      } else {
+        mainWindow.show();
+        if (process.platform === "darwin") {
+          app.dock.show();
+        }
+      }
+    }
+  });
+}
+
+function createFallbackIcon() {
+  // Create a simple 16x16 PNG icon in memory
+  const { nativeImage } = require("electron");
+  const image = nativeImage.createEmpty();
+  return image;
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -129,18 +188,19 @@ function createWindow() {
 
   mainWindow.on("closed", () => {
     mainWindow = null;
-    if (backendProcess) {
-      backendProcess.kill();
-      backendProcess = null;
-    }
-    if (proxyServer) {
-      proxyServer.close();
-      proxyServer = null;
-    }
-    if (!app.isQuitting) {
-      app.quit();
+  });
+
+  // Minimize to tray instead of closing
+  mainWindow.on("close", (e) => {
+    e.preventDefault();
+    mainWindow.hide();
+    if (process.platform === "darwin") {
+      app.dock.hide();
     }
   });
+
+  // Create system tray
+  createTray();
 
   // Start the Python backend
   const startBackend = () => {
@@ -211,5 +271,9 @@ app.on("before-quit", () => {
   }
   if (proxyServer) {
     proxyServer.close();
+  }
+  if (tray) {
+    tray.destroy();
+    tray = null;
   }
 });

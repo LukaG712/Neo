@@ -28,13 +28,14 @@ def init_db() -> None:
                 id TEXT PRIMARY KEY,
                 title TEXT NOT NULL,
                 model TEXT,
+                system_prompt TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );
             CREATE TABLE IF NOT EXISTS messages (
                 id TEXT PRIMARY KEY,
                 conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-                role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
+                role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system')),
                 content TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 total_duration_ns INTEGER,
@@ -51,4 +52,43 @@ def init_db() -> None:
                 created_at TEXT NOT NULL
             );
             CREATE INDEX IF NOT EXISTS idx_documents_created ON documents(created_at DESC);
+            CREATE TABLE IF NOT EXISTS presets (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                model TEXT NOT NULL,
+                system_prompt TEXT,
+                temperature REAL NOT NULL,
+                max_tokens INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS tags (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                color TEXT DEFAULT '#6b7280',
+                created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS conversation_tags (
+                conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+                tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+                PRIMARY KEY (conversation_id, tag_id)
+            );
+            CREATE TABLE IF NOT EXISTS quick_prompts (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                prompt TEXT NOT NULL,
+                category TEXT DEFAULT 'general',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
         """)
+        # Add system_prompt column if it doesn't exist (migration)
+        try:
+            db.execute("ALTER TABLE conversations ADD COLUMN system_prompt TEXT")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+        # Add pinned column if it doesn't exist (migration)
+        try:
+            db.execute("ALTER TABLE conversations ADD COLUMN pinned INTEGER DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass  # Column already exists

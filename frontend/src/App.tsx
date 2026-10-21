@@ -3,13 +3,16 @@ import {
   Activity,
   Check,
   ChevronDown,
+  Clipboard,
   Cpu,
   BookOpen,
   Braces,
+  Download,
   MessageSquare,
   Moon,
   Pencil,
   Plus,
+  RefreshCw,
   Search,
   Send,
   ShieldCheck,
@@ -18,6 +21,13 @@ import {
   Trash2,
   X,
   Zap,
+  Settings,
+  Clock,
+  Tag,
+  BarChart3,
+  Lightbulb,
+  Pin,
+  Upload,
 } from "lucide-react";
 import {
   api,
@@ -26,6 +36,10 @@ import {
   type Model,
   type OllamaStatus,
   type ProviderStatus,
+  type Preset,
+  type Tag as TagType,
+  type QuickPrompt,
+  type ConversationStats,
 } from "./api/client";
 import Playground from "./Playground";
 import Tools from "./Tools";
@@ -89,9 +103,30 @@ export default function App() {
   const [highlighted, setHighlighted] = useState(-1);
   const [scrolled, setScrolled] = useState(false);
   const [modelMenu, setModelMenu] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [systemPrompt, setSystemPrompt] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [presetsMenu, setPresetsMenu] = useState(false);
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [presetName, setPresetName] = useState("");
+  const [tagsMenu, setTagsMenu] = useState(false);
+  const [tags, setTags] = useState<TagType[]>([]);
+  const [tagName, setTagName] = useState("");
+  const [tagColor, setTagColor] = useState("#6b7280");
+  const [activeTags, setActiveTags] = useState<TagType[]>([]);
+  const [promptsMenu, setPromptsMenu] = useState(false);
+  const [quickPrompts, setQuickPrompts] = useState<QuickPrompt[]>([]);
+  const [promptTitle, setPromptTitle] = useState("");
+  const [promptText, setPromptText] = useState("");
+  const [promptCategory, setPromptCategory] = useState("");
+  const [statsOpen, setStatsOpen] = useState(false);
+  const [convStats, setConvStats] = useState<ConversationStats | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
   const aborter = useRef<AbortController | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -197,6 +232,15 @@ export default function App() {
         .catch(() => setActive(null));
   }, [active?.id]);
   useEffect(() => {
+    if (active) {
+      void loadConversationTags();
+      void loadConversationStats();
+    } else {
+      setActiveTags([]);
+      setConvStats(null);
+    }
+  }, [active?.id]);
+  useEffect(() => {
     function onScroll() {
       setScrolled(window.scrollY > 8);
     }
@@ -277,8 +321,10 @@ export default function App() {
     setView("chat");
     setError("");
     setReply("");
-    setActive(await api.conversation(item.id));
-    if (item.model) setModel(item.model);
+    const conv = await api.conversation(item.id);
+    setActive(conv);
+    if (conv.model) setModel(conv.model);
+    if (conv.system_prompt) setSystemPrompt(conv.system_prompt);
     setMenuOpen(false);
   }
   async function newConversation() {
@@ -303,7 +349,7 @@ export default function App() {
   async function renameConversation(id: string) {
     if (!renameText.trim()) return;
     try {
-      await api.rename(id, renameText.trim());
+      await api.rename(id, { title: renameText.trim() });
       setRenaming(null);
       await refresh();
     } catch (e) {
@@ -321,7 +367,7 @@ export default function App() {
     let current = active;
     try {
       if (!current) {
-        current = await api.create(model);
+        current = await api.create(model, systemPrompt || undefined);
         setActive({ ...current, messages: [] });
       }
       const controller = new AbortController();
@@ -344,6 +390,7 @@ export default function App() {
           content,
           (token) => setReply((text) => text + token),
           controller.signal,
+          systemPrompt || undefined,
         );
       }
     } catch (e) {
@@ -365,6 +412,83 @@ export default function App() {
       setStreaming(false);
       aborter.current = null;
       setPendingUser("");
+    }
+  }
+  
+  async function exportConversation(format: string = "markdown") {
+    if (!active) return;
+    try {
+      const result = await api.export(active.id, format);
+      const resultAny = result as any;
+      const blob = format === "json"
+        ? new Blob([JSON.stringify({ conversation: resultAny.conversation, messages: resultAny.messages }, null, 2)], { type: "application/json" })
+        : new Blob([resultAny.content], { type: "text/markdown" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = format === "json" ? `${active.title.replace(' ', '_')}.json` : resultAny.filename || `${active.title.replace(' ', '_')}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  
+  async function deleteMessage(messageId: string) {
+    if (!active) return;
+    try {
+      await api.deleteMessage(active.id, messageId);
+      setActive(await api.conversation(active.id));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  
+  async function loadPresets() {
+    try {
+      const list = await api.presets();
+      setPresets(list);
+    } catch {}
+  }
+
+  async function loadTags() {
+    try {
+      const list = await api.tags();
+      setTags(list);
+    } catch {}
+  }
+
+  async function loadQuickPrompts() {
+    try {
+      const list = await api.quickPrompts();
+      setQuickPrompts(list);
+    } catch {}
+  }
+
+  async function loadConversationTags() {
+    if (!active) return;
+    try {
+      const list = await api.getConversationTags(active.id);
+      setActiveTags(list);
+    } catch {}
+  }
+
+  async function loadConversationStats() {
+    if (!active) return;
+    try {
+      const stats = await api.conversationStats(active.id);
+      setConvStats(stats);
+    } catch {}
+  }
+
+  async function saveSystemPrompt() {
+    if (!active) return;
+    try {
+      await api.rename(active.id, { title: active.title, system_prompt: systemPrompt || null });
+      setActive(await api.conversation(active.id));
+      setSettingsOpen(false);
+    } catch (e) {
+      setError((e as Error).message);
     }
   }
   function keyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -532,6 +656,23 @@ export default function App() {
                   ) : (
                     <>
                       <button
+                        onClick={async () => {
+                          try {
+                            if (item.pinned) {
+                              await api.unpin(item.id);
+                            } else {
+                              await api.pin(item.id);
+                            }
+                            const list = await api.conversations(search);
+                            setConversations(list);
+                          } catch {}
+                        }}
+                        title={item.pinned ? t("unpin") : t("pin")}
+                        aria-label={item.pinned ? t("unpin") : t("pin")}
+                      >
+                        <Pin size={12} className={item.pinned ? "pinned-icon" : ""} />
+                      </button>
+                      <button
                         onClick={() => {
                           setRenaming(item.id);
                           setRenameText(item.title);
@@ -665,6 +806,342 @@ export default function App() {
             </button>
           </nav>
           <div className="topbar-right">
+            <div style={{position: "relative"}}>
+              <button
+                type="button"
+                className="icon-btn presets-btn"
+                onClick={() => {
+                  setPresetsMenu((v) => !v);
+                  if (!presets.length) loadPresets();
+                }}
+                aria-label={t("presets")}
+                title={t("presets")}
+              >
+                <Sparkles size={16} />
+              </button>
+              {presetsMenu && (
+                <div className="presets-menu">
+                  <h4>{t("modelPresets")}</h4>
+                  {presets.length === 0 ? (
+                    <div className="presets-empty">{t("noPresets")}</div>
+                  ) : (
+                    presets.map((p) => (
+                      <div key={p.id} className="preset-item">
+                        <div className="preset-item-info" onClick={async () => {
+                          setModel(p.model);
+                          setSystemPrompt(p.system_prompt || "");
+                          setTemperature(p.temperature);
+                          setMaxTokens(p.max_tokens);
+                          setPresetsMenu(false);
+                        }}>
+                          <div className="preset-item-name">{p.name}</div>
+                          <div className="preset-item-model">{p.model} · {t("temperature")}: {p.temperature} · {t("maxTokens")}: {p.max_tokens}</div>
+                        </div>
+                        <div className="preset-item-actions">
+                          <button onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              await api.removePreset(p.id);
+                              setPresets(await api.presets());
+                            } catch (err) {
+                              setError((err as Error).message);
+                            }
+                          }} title={t("deletePreset")}>
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  <div className="presets-save-form">
+                    <input
+                      type="text"
+                      placeholder={t("presetNamePlaceholder")}
+                      value={presetName}
+                      onChange={(e) => setPresetName(e.target.value)}
+                    />
+                    <button onClick={async () => {
+                      if (!presetName.trim() || !model) return;
+                      try {
+                        await api.createPreset({
+                          name: presetName.trim(),
+                          model,
+                          system_prompt: systemPrompt || undefined,
+                          temperature,
+                          max_tokens: maxTokens,
+                        });
+                        setPresetName("");
+                        setPresets(await api.presets());
+                      } catch (err) {
+                        setError((err as Error).message);
+                      }
+                    }}>
+                      {t("savePreset")}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              className="icon-btn settings-btn"
+              onClick={() => setSettingsOpen((v) => !v)}
+              aria-label={t("settings")}
+              title={t("settings")}
+            >
+              <Settings size={16} />
+            </button>
+            <button
+              type="button"
+              className="icon-btn export-btn"
+              onClick={() => void exportConversation("markdown")}
+              disabled={!active}
+              aria-label={t("export")}
+              title={t("export")}
+            >
+              <Download size={16} />
+            </button>
+            <button
+              type="button"
+              className="icon-btn import-btn"
+              onClick={() => fileInput.current?.click()}
+              aria-label={t("importConversation")}
+              title={t("importConversation")}
+            >
+              <Upload size={16} />
+            </button>
+            <input
+              ref={fileInput}
+              type="file"
+              accept=".json"
+              style={{display: "none"}}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                try {
+                  const text = await file.text();
+                  const data = JSON.parse(text);
+                  // Support both raw conversation format and exported format
+                  const conv = data.conversation || data;
+                  const msgs = data.messages || [];
+                  await api.importConversation({
+                    title: conv.title || "Imported conversation",
+                    model: conv.model || null,
+                    system_prompt: conv.system_prompt || null,
+                    messages: msgs.map((m: any) => ({ role: m.role, content: m.content })),
+                  });
+                  const list = await api.conversations(search);
+                  setConversations(list);
+                  setError("");
+                } catch (err) {
+                  setError(t("importFailed"));
+                } finally {
+                  e.target.value = "";
+                }
+              }}
+            />
+            <div style={{position: "relative"}}>
+              <button
+                type="button"
+                className="icon-btn tags-btn"
+                onClick={() => {
+                  setTagsMenu((v) => !v);
+                  if (!tags.length) loadTags();
+                }}
+                aria-label={t("tags")}
+                title={t("tags")}
+              >
+                <Tag size={16} />
+              </button>
+              {tagsMenu && (
+                <div className="tags-menu">
+                  <h4>{t("manageTags")}</h4>
+                  {active && (
+                    <div className="tags-assign">
+                      <span className="tags-assign-label">{language === "nl" ? "Labels toewijzen:" : "Assign tags:"}</span>
+                      <div className="tags-assign-list">
+                        {tags.map((tag) => {
+                          const isActive = activeTags.some((at) => at.id === tag.id);
+                          return (
+                            <button
+                              key={tag.id}
+                              className={`tag-chip ${isActive ? "active" : ""}`}
+                              style={{backgroundColor: isActive ? tag.color : 'transparent', border: `1px solid ${tag.color}`}}
+                              onClick={async () => {
+                                const newTags = isActive
+                                  ? activeTags.filter((at) => at.id !== tag.id)
+                                  : [...activeTags, tag];
+                                setActiveTags(newTags);
+                                try {
+                                  await api.setConversationTags(active.id, newTags.map((t) => t.id));
+                                } catch (err) {
+                                  setError((err as Error).message);
+                                }
+                              }}
+                            >
+                              <span className="tag-dot" style={{backgroundColor: tag.color}} />
+                              {tag.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  <div className="tags-create-form">
+                    <input
+                      type="text"
+                      placeholder={t("tagNamePlaceholder")}
+                      value={tagName}
+                      onChange={(e) => setTagName(e.target.value)}
+                    />
+                    <input
+                      type="color"
+                      value={tagColor}
+                      onChange={(e) => setTagColor(e.target.value)}
+                      title={language === "nl" ? "Kleur" : "Color"}
+                    />
+                    <button onClick={async () => {
+                      if (!tagName.trim()) return;
+                      try {
+                        await api.createTag(tagName.trim(), tagColor);
+                        setTagName("");
+                        setTagColor("#6b7280");
+                        setTags(await api.tags());
+                      } catch (err) {
+                        setError((err as Error).message);
+                      }
+                    }}>
+                      {t("saveTag")}
+                    </button>
+                  </div>
+                  {tags.length > 0 && (
+                    <div className="tags-list">
+                      {tags.map((tag) => (
+                        <div key={tag.id} className="tag-item">
+                          <span className="tag-dot" style={{backgroundColor: tag.color}} />
+                          <span className="tag-name">{tag.name}</span>
+                          <span className="tag-count">{tag.conversation_count || 0}</span>
+                          <button onClick={async () => {
+                            try {
+                              await api.removeTag(tag.id);
+                              setTags(await api.tags());
+                              if (active) {
+                                const newTags = activeTags.filter((at) => at.id !== tag.id);
+                                setActiveTags(newTags);
+                                await api.setConversationTags(active.id, newTags.map((t) => t.id));
+                              }
+                            } catch (err) {
+                              setError((err as Error).message);
+                            }
+                          }}>
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div style={{position: "relative"}}>
+              <button
+                type="button"
+                className="icon-btn prompts-btn"
+                onClick={() => {
+                  setPromptsMenu((v) => !v);
+                  if (!quickPrompts.length) loadQuickPrompts();
+                }}
+                aria-label={t("quickPrompts")}
+                title={t("quickPrompts")}
+              >
+                <Lightbulb size={16} />
+              </button>
+              {promptsMenu && (
+                <div className="prompts-menu">
+                  <h4>{t("quickPrompts")}</h4>
+                  {quickPrompts.length === 0 ? (
+                    <div className="prompts-empty">{t("noQuickPrompts")}</div>
+                  ) : (
+                    <div className="prompts-list">
+                      {quickPrompts.map((p) => (
+                        <div key={p.id} className="prompt-item">
+                          <div className="prompt-item-info" onClick={() => {
+                            setDraft(p.prompt);
+                            setPromptsMenu(false);
+                          }}>
+                            <div className="prompt-item-title">{p.title}</div>
+                            <div className="prompt-item-preview">{p.prompt.substring(0, 80)}{p.prompt.length > 80 ? '...' : ''}</div>
+                            <span className="prompt-category">{p.category}</span>
+                          </div>
+                          <button onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              await api.removeQuickPrompt(p.id);
+                              setQuickPrompts(await api.quickPrompts());
+                            } catch (err) {
+                              setError((err as Error).message);
+                            }
+                          }} title={t("deleteQuickPrompt")}>
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="prompts-create-form">
+                    <input
+                      type="text"
+                      placeholder={t("promptTitlePlaceholder")}
+                      value={promptTitle}
+                      onChange={(e) => setPromptTitle(e.target.value)}
+                    />
+                    <textarea
+                      placeholder={t("promptTextPlaceholder")}
+                      value={promptText}
+                      onChange={(e) => setPromptText(e.target.value)}
+                      rows={2}
+                    />
+                    <input
+                      type="text"
+                      placeholder={t("promptCategory")}
+                      value={promptCategory}
+                      onChange={(e) => setPromptCategory(e.target.value)}
+                    />
+                    <button onClick={async () => {
+                      if (!promptTitle.trim() || !promptText.trim()) return;
+                      try {
+                        await api.createQuickPrompt({
+                          title: promptTitle.trim(),
+                          prompt: promptText.trim(),
+                          category: promptCategory.trim() || "general",
+                        });
+                        setPromptTitle("");
+                        setPromptText("");
+                        setPromptCategory("");
+                        setQuickPrompts(await api.quickPrompts());
+                      } catch (err) {
+                        setError((err as Error).message);
+                      }
+                    }}>
+                      {t("saveQuickPrompt")}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              className="icon-btn stats-btn"
+              onClick={() => {
+                setStatsOpen((v) => !v);
+                if (active && !convStats) loadConversationStats();
+              }}
+              disabled={!active}
+              aria-label={t("stats")}
+              title={t("stats")}
+            >
+              <BarChart3 size={16} />
+            </button>
             <div
               className="language-switch"
               role="group"
@@ -711,6 +1188,71 @@ export default function App() {
         </header>
         {menuOpen && (
           <div className="mega-backdrop" onClick={() => setMenuOpen(false)} />
+        )}
+        {settingsOpen && active && (
+          <div className="settings-modal-overlay" onClick={() => setSettingsOpen(false)}>
+            <div className="settings-modal" onClick={e => e.stopPropagation()}>
+              <h3>{language === "nl" ? "Gespreksinstellingen" : "Conversation Settings"}</h3>
+              <label>
+                <span>{language === "nl" ? "Systeemprompt" : "System Prompt"}</span>
+                <textarea
+                  value={systemPrompt}
+                  onChange={e => setSystemPrompt(e.target.value)}
+                  placeholder={language === "nl" ? "Stel het gedrag van het AI-model in..." : "Set the AI model behavior..."}
+                  rows={4}
+                />
+                <small>{language === "nl" ? "De systeemprompt stelt het gedrag van het model in voor dit gesprek." : "The system prompt sets the model behavior for this conversation."}</small>
+              </label>
+              <div className="settings-actions">
+                <button onClick={() => setSettingsOpen(false)}>{language === "nl" ? "Annuleren" : "Cancel"}</button>
+                <button className="primary" onClick={() => void saveSystemPrompt()}>{language === "nl" ? "Opslaan" : "Save"}</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {statsOpen && active && (
+          <div className="settings-modal-overlay" onClick={() => setStatsOpen(false)}>
+            <div className="settings-modal stats-modal" onClick={e => e.stopPropagation()}>
+              <h3>{t("conversationStats")}</h3>
+              {convStats ? (
+                <div className="stats-grid">
+                  <div className="stat-card">
+                    <div className="stat-value">{convStats.user_messages}</div>
+                    <div className="stat-label">{t("userMessages")}</div>
+                  </div>
+                  <div className="stat-card">
+                    <div className="stat-value">{convStats.assistant_messages}</div>
+                    <div className="stat-label">{t("assistantMessages")}</div>
+                  </div>
+                  <div className="stat-card">
+                    <div className="stat-value">{convStats.total_messages}</div>
+                    <div className="stat-label">{t("totalMessages")}</div>
+                  </div>
+                  <div className="stat-card">
+                    <div className="stat-value">{convStats.total_tokens.toLocaleString()}</div>
+                    <div className="stat-label">{t("totalTokens")}</div>
+                  </div>
+                  <div className="stat-card">
+                    <div className="stat-value">{convStats.average_tokens_per_response}</div>
+                    <div className="stat-label">{t("avgTokensPerResponse")}</div>
+                  </div>
+                  <div className="stat-card">
+                    <div className="stat-value">{convStats.average_speed_tokens_per_second} {t("tokensPerSecond")}</div>
+                    <div className="stat-label">{t("avgSpeed")}</div>
+                  </div>
+                  <div className="stat-card" style={{gridColumn: "span 2"}}>
+                    <div className="stat-value">{convStats.total_characters.toLocaleString()}</div>
+                    <div className="stat-label">{t("totalCharacters")}</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="stats-empty">{language === "nl" ? "Geen statistieken beschikbaar" : "No statistics available"}</div>
+              )}
+              <div className="settings-actions">
+                <button onClick={() => setStatsOpen(false)}>{language === "nl" ? "Sluiten" : "Close"}</button>
+              </div>
+            </div>
+          </div>
         )}
         <div className={`mega-menu ${menuOpen ? "open" : ""}`}>
           {conversationsMenu}
@@ -823,22 +1365,155 @@ export default function App() {
                       )}
                     </div>
                     <div className="message-body">
-                      <div className="message-label">
-                        {message.role === "assistant" ? (
-                          <>
-                            {active.model || t("assistant")}{" "}
-                            <span className="model-badge">{t("local")}</span>
-                          </>
-                        ) : (
-                          t("you")
-                        )}
+                      <div className="message-header">
+                        <div className="message-label">
+                          {message.role === "assistant" ? (
+                            <>
+                              {active.model || t("assistant")}{" "}
+                              <span className="model-badge">{t("local")}</span>
+                            </>
+                          ) : (
+                            t("you")
+                          )}
+                        </div>
+                        <div className="message-actions">
+                          {message.role === "user" && editingId !== message.id && (
+                            <button
+                              className="message-action-btn"
+                              onClick={() => {
+                                setEditingId(message.id);
+                                setEditText(message.content);
+                              }}
+                              title={t("edit")}
+                              aria-label={t("edit")}
+                            >
+                              <Pencil size={12} />
+                            </button>
+                          )}
+                          {message.role === "assistant" && (
+                            <button
+                              className="message-action-btn"
+                              onClick={async () => {
+                                if (!active || !model) return;
+                                setStreaming(true);
+                                setReply("");
+                                const controller = new AbortController();
+                                aborter.current = controller;
+                                try {
+                                  await api.regenerate(
+                                    active.id,
+                                    model,
+                                    (token) => setReply((text) => text + token),
+                                    controller.signal,
+                                    systemPrompt || undefined,
+                                  );
+                                } catch (e) {
+                                  const msg = (e as Error).message;
+                                  if (!controller.signal.aborted) setError(msg);
+                                } finally {
+                                  if (active) {
+                                    try {
+                                      const [detail, list] = await Promise.all([
+                                        api.conversation(active.id),
+                                        api.conversations(search),
+                                      ]);
+                                      setActive(detail);
+                                      setConversations(list);
+                                    } catch {}
+                                  }
+                                  setStreaming(false);
+                                  aborter.current = null;
+                                  setReply("");
+                                }
+                              }}
+                              title={t("regenerate")}
+                              aria-label={t("regenerate")}
+                            >
+                              <RefreshCw size={12} />
+                            </button>
+                          )}
+                          <button
+                            className="message-delete-btn"
+                            onClick={() => {
+                              if (window.confirm(language === "nl" ? "Bericht verwijderen?" : "Delete message?")) {
+                                void deleteMessage(message.id);
+                              }
+                            }}
+                            title={language === "nl" ? "Bericht verwijderen" : "Delete message"}
+                            aria-label={language === "nl" ? "Bericht verwijderen" : "Delete message"}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                          <button
+                            className="message-action-btn"
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(message.content);
+                                setCopiedId(message.id);
+                                setTimeout(() => setCopiedId(null), 1500);
+                              } catch {}
+                            }}
+                            title={copiedId === message.id ? t("copied") : t("copy")}
+                            aria-label={t("copy")}
+                          >
+                            {copiedId === message.id ? <Check size={12} /> : <Clipboard size={12} />}
+                          </button>
+                        </div>
                       </div>
-                      {message.role === "assistant" ? (
+                      {editingId === message.id ? (
+                        <div className="message-edit">
+                          <textarea
+                            className="message-edit-textarea"
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            rows={Math.min(message.content.split('\n').length, 8)}
+                          />
+                          <div className="message-edit-actions">
+                            <button
+                              className="btn-cancel"
+                              onClick={() => setEditingId(null)}
+                            >
+                              {t("cancel")}
+                            </button>
+                            <button
+                              className="btn-save"
+                              onClick={async () => {
+                                if (!active || !editText.trim()) return;
+                                try {
+                                  await api.updateMessage(active.id, message.id, editText.trim());
+                                  setEditingId(null);
+                                  if (active) {
+                                    const [detail, list] = await Promise.all([
+                                      api.conversation(active.id),
+                                      api.conversations(search),
+                                    ]);
+                                    setActive(detail);
+                                    setConversations(list);
+                                  }
+                                } catch (e) {
+                                  setError((e as Error).message);
+                                }
+                              }}
+                            >
+                              {t("done")}
+                            </button>
+                          </div>
+                        </div>
+                      ) : message.role === "assistant" ? (
                         <MarkdownContent className="message-text markdown-body">
                           {message.content}
                         </MarkdownContent>
                       ) : (
                         <div className="message-text">{message.content}</div>
+                      )}
+                      {message.created_at && (
+                        <div className="message-timestamp">
+                          <Clock size={10} />
+                          {new Date(message.created_at).toLocaleString(language === "nl" ? "nl-NL" : "en-US", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
                       )}
                       {message.role === "assistant" &&
                         (message.total_duration_ns || message.eval_count) && (
@@ -934,6 +1609,13 @@ export default function App() {
                       e.currentTarget.style.height = `${Math.min(e.currentTarget.scrollHeight, 160)}px`;
                     }}
                   />
+                  {draft.trim() && (
+                    <div className="word-count">
+                      <span>{draft.trim().split(/\s+/).length} {t("wordCount")}</span>
+                      <span className="word-count-sep">·</span>
+                      <span>{draft.length} {t("charCount")}</span>
+                    </div>
+                  )}
                   <div className="composer-toolbar">
                     <div className="composer-left">
                       <div className="provider-picker-wrap">

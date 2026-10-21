@@ -7,7 +7,11 @@ from app.api.chat import router as chat_router
 from app.api.conversations import router as conversations_router
 from app.api.messages import router as messages_router
 from app.api.playground import router as playground_router
+from app.api.presets import router as presets_router
+from app.api.prompts import router as prompts_router
 from app.api.providers import router as providers_router
+from app.api.stats import router as stats_router
+from app.api.tags import router as tags_router
 from app.api.tools import router as tools_router
 from app.core.config import settings
 from app.core.providers import ProviderRegistry
@@ -30,14 +34,18 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=False,
-    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["Content-Type"],
 )
 app.include_router(conversations_router)
 app.include_router(messages_router)
 app.include_router(chat_router)
 app.include_router(playground_router)
+app.include_router(presets_router)
+app.include_router(prompts_router)
 app.include_router(providers_router)
+app.include_router(stats_router)
+app.include_router(tags_router)
 app.include_router(tools_router)
 
 

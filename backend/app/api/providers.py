@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import StreamingResponse
 from json import dumps
 
-from app.core.providers import ProviderError
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import StreamingResponse
+
+from app.core.providers import ProviderError, ProviderRegistry
 
 router = APIRouter(prefix="/api/providers", tags=["providers"])
 
