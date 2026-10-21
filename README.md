@@ -18,6 +18,7 @@
 
 > **A private, local-first AI workspace**: chat with Ollama and cloud models, compare responses, organize conversations, and analyze your usage, all running on your machine.
 
+[![CI](https://github.com/LukaG712/Neo/actions/workflows/ci.yml/badge.svg)](https://github.com/LukaG712/Neo/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18+-61dafb.svg)](https://reactjs.org)
