@@ -27,7 +27,7 @@ type Props = {
 type ToolTab = "documents" | "code";
 
 function duration(ns?: number) {
-  if (ns == null) return "—";
+  if (ns == null) return "N/A";
   return ns >= 1_000_000_000
     ? `${(ns / 1_000_000_000).toFixed(2)}s`
     : `${Math.round(ns / 1_000_000)}ms`;
@@ -125,7 +125,7 @@ export default function Tools({
       <header className="tools-header">
         <div>
           <div className="tools-kicker">
-            <span /> {nl ? "LOKALE AI-WERKPLAATS" : "LOCAL AI WORKBENCH"}
+            <span /> {nl ? "LOKALE AI-WERKPLAATS" : "Orbis WORKBENCH"}
           </div>
           <h1>
             {tab === "documents"
@@ -386,7 +386,7 @@ export default function Tools({
               {nl ? "generatie" : "generation"}
             </span>
             <span>
-              {result.eval_count ?? "—"} {nl ? "tokens" : "tokens"}
+              {result.eval_count ?? "N/A"} {nl ? "tokens" : "tokens"}
             </span>
             {result.eval_count && result.eval_duration ? (
               <span>

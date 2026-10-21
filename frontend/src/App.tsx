@@ -47,7 +47,7 @@ import MarkdownContent from "./MarkdownContent";
 import { messages, type Language, type MessageKey } from "./i18n";
 
 function compactDuration(ns?: number) {
-  if (ns == null) return "—";
+  if (ns == null) return "N/A";
   const s = ns / 1e9;
   return s >= 1 ? `${s.toFixed(2)}s` : `${Math.round(s * 1000)}ms`;
 }
@@ -747,7 +747,7 @@ export default function App() {
               </span>
             </button>
             <span className="topbar-brand">
-              localai<span className="brand-period">.</span>
+              orbis<span className="brand-period">.</span>
             </span>
           </div>
           <nav className="view-switch" aria-label={t("workspace")}>
@@ -1528,7 +1528,7 @@ export default function App() {
                               {t("prompt")}
                             </span>
                             <span>
-                              {message.eval_count ?? "—"} {t("tokens")}
+                              {message.eval_count ?? "N/A"} {t("tokens")}
                             </span>
                             {speed(message) && <span>{speed(message)}</span>}
                           </div>
@@ -1721,7 +1721,7 @@ export default function App() {
                 <span className="footer-dot" /> {t("inferenceLocal")}
               </span>
               <span>
-                LOCAL AI CONTROL CENTER <b>·</b> v0.1
+                Orbis <b>·</b> v0.1
               </span>
             </footer>
           </section>

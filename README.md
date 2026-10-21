@@ -1,21 +1,21 @@
-                                                                                                                            
+                                                                                    
  ```
- _____                   ____             _____       _____       _____                       _____          ____________   
-|\    \              ____\_  \__     _____\    \_   /      |_    |\    \                    /      |_       /            \  
- \\    \            /     /     \   /     /|     | /         \    \\    \                  /         \     |\___/\  \\___/| 
-  \\    \          /     /\      | /     / /____/||     /\    \    \\    \                |     /\    \     \|____\  \___|/ 
-   \|    | ______ |     |  |     ||     | |____|/ |    |  |    \    \|    | ______        |    |  |    \          |  |      
-    |    |/      \|     |  |     ||     |  _____  |     \/      \    |    |/      \       |     \/      \    __  /   / __   
-    /            ||     | /     /||\     \|\    \ |\      /\     \   /            |       |\      /\     \  /  \/   /_/  |  
-   /_____/\_____/||\     \_____/ || \_____\|    | | \_____\ \_____\ /_____/\_____/|       | \_____\ \_____\|____________/|  
-  |      | |    ||| \_____\   | / | |     /____/| | |     | |     ||      | |    ||       | |     | |     ||           | /  
-  |______|/|____|/ \ |    |___|/   \|_____|    ||  \|_____|\|_____||______|/|____|/        \|_____|\|_____||___________|/   
-                    \|____|               |____|/                                                                            
+       ____     ___________      ______  ______    ____________             _____   
+   ____\_  \__  \          \     \     \|\     \  /            \       _____\    \  
+  /     /     \  \    /\    \     |     |\|     ||\___/\  \\___/|     /    / \    | 
+ /     /\      |  |   \_\    |    |     |/____ /  \|____\  \___|/    |    |  /___/| 
+|     |  |     |  |      ___/     |     |\     \        |  |      ____\    \ |   || 
+|     |  |     |  |      \  ____  |     | |     |  __  /   / __  /    /\    \|___|/ 
+|     | /     /| /     /\ \/    \ |     | |     | /  \/   /_/  ||    |/ \    \      
+|\     \_____/ |/_____/ |\______|/_____/|/_____/||____________/||\____\ /____/|     
+| \_____\   | / |     | | |     ||    |||     | ||           | /| |   ||    | |     
+ \ |    |___|/  |_____|/ \|_____||____|/|_____|/ |___________|/  \|___||____|/      
+  \|____|                                                                            
  ```
 
-# Local AI Control Center
+# Orbis
 
-> **A private, local-first AI workspace** — chat with Ollama and cloud models, compare responses, organize conversations, and analyze your usage — all running on your machine.
+> **A private, local-first AI workspace**: chat with Ollama and cloud models, compare responses, organize conversations, and analyze your usage, all running on your machine.
 
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
@@ -71,9 +71,9 @@
 
 ## What is this?
 
-Local AI Control Center is a locally running dashboard for AI models. Stream conversations, manage chat history, inspect generation statistics, and compare the same prompt across multiple installed models. The frontend and API run on localhost; conversations and messages are stored in a local SQLite database.
+Orbis is a locally running dashboard for AI models. Stream conversations, manage chat history, inspect generation statistics, and compare the same prompt across multiple installed models. The frontend and API run on localhost; conversations and messages are stored in a local SQLite database.
 
-Supports **Ollama** for local models and **cloud providers** (OpenAI, Anthropic, Google Gemini) via configurable API keys — all from a single unified interface.
+Supports **Ollama** for local models and **cloud providers** (OpenAI, Anthropic, Google Gemini) via configurable API keys, all from a single unified interface.
 
 ---
 
@@ -83,52 +83,52 @@ Supports **Ollama** for local models and **cloud providers** (OpenAI, Anthropic,
 
 - **Streaming chat** with real-time token-by-token responses persisted in SQLite
 - **System prompts** per conversation for customized AI behavior
-- **Message editing** — edit your sent messages inline and get a fresh response
-- **Response regeneration** — re-generate the last AI response with one click
-- **Message timestamps** — see when each message was created
-- **Copy to clipboard** — one-click copy on every message with visual feedback
+- **Message editing**: edit your sent messages inline and get a fresh response
+- **Response regeneration**: re-generate the last AI response with one click
+- **Message timestamps**: see when each message was created
+- **Copy to clipboard**: one-click copy on every message with visual feedback
 - **Delete individual messages** from conversations
-- **Generation statistics** — time, prompt eval time, token count, and tokens/second
-- **Markdown rendering** — responses formatted with lists, tables, code blocks, and more
-- **Word and character count** — live count while typing your message
+- **Generation statistics**: time, prompt eval time, token count, and tokens/second
+- **Markdown rendering**: responses formatted with lists, tables, code blocks, and more
+- **Word and character count**: live count while typing your message
 
 ### Organization
 
-- **Search conversations** — full-text search across titles AND message content
-- **Pin conversations** — keep important chats at the top of the list
-- **Conversation tags** — create, color, and assign tags to organize your chats
-- **Rename conversations** — inline renaming with auto-title from first message
-- **Export conversations** — download as Markdown or JSON for backup and sharing
-- **Import conversations** — restore from previously exported JSON files
-- **Delete conversations** — remove conversations and all associated messages
+- **Search conversations**: full-text search across titles AND message content
+- **Pin conversations**: keep important chats at the top of the list
+- **Conversation tags**: create, color, and assign tags to organize your chats
+- **Rename conversations**: inline renaming with auto-title from first message
+- **Export conversations**: download as Markdown or JSON for backup and sharing
+- **Import conversations**: restore from previously exported JSON files
+- **Delete conversations**: remove conversations and all associated messages
 
 ### Productivity
 
-- **Model presets** — save and apply model configurations (model, system prompt, temperature, max tokens)
-- **Quick Prompts** — save reusable prompt templates with categories and quick insertion
-- **Conversation statistics** — view message counts, token usage, average speed, and more
-- **Provider switching** — switch between Ollama and cloud providers per conversation
+- **Model presets**: save and apply model configurations (model, system prompt, temperature, max tokens)
+- **Quick Prompts**: save reusable prompt templates with categories and quick insertion
+- **Conversation statistics**: view message counts, token usage, average speed, and more
+- **Provider switching**: switch between Ollama and cloud providers per conversation
 
 ### Tools
 
-- **Prompt Playground** — run one prompt across 2–4 models in parallel and compare results
-- **Document Q&A** — upload `.txt` and `.md` files and ask questions about their content
-- **Code explanation** — paste code and get a clear explanation of what it does
+- **Prompt Playground**: run one prompt across 2–4 models in parallel and compare results
+- **Document Q&A**: upload `.txt` and `.md` files and ask questions about their content
+- **Code explanation**: paste code and get a clear explanation of what it does
 
 ### Interface
 
-- **Dark/light theme** — responsive interface that adapts to your system preference
-- **Bilingual support** — English and Dutch interface, language preference saved locally
-- **Loading, empty, and error states** — clear feedback for every interaction
-- **Keyboard navigation** — full keyboard support for conversation list and controls
-- **Icon buttons** — intuitive icons from Lucide React for all actions
+- **Dark/light theme**: responsive interface that adapts to your system preference
+- **Bilingual support**: English and Dutch interface, language preference saved locally
+- **Loading, empty, and error states**: clear feedback for every interaction
+- **Keyboard navigation**: full keyboard support for conversation list and controls
+- **Icon buttons**: intuitive icons from Lucide React for all actions
 
 ### Desktop App
 
-- **Electron app** — standalone desktop application with system tray support
-- **Minimize to tray** — close window minimizes to system tray instead of quitting
-- **PyInstaller portable build** — single `.exe` folder, no installation required
-- **Auto-started backend** — the Python backend starts automatically with the desktop app
+- **Electron app**: standalone desktop application with system tray support
+- **Minimize to tray**: close window minimizes to system tray instead of quitting
+- **PyInstaller portable build**: single `.exe` folder, no installation required
+- **Auto-started backend**: the Python backend starts automatically with the desktop app
 
 ---
 
@@ -154,7 +154,7 @@ In the conversation list, the highlight also follows the mouse. Shortcut hints a
 | Frontend | React 18, TypeScript 5, Vite |
 | API | Python 3.11+, FastAPI |
 | Storage | SQLite with foreign key constraints |
-| Local AI | Ollama HTTP API |
+| Orbis | Ollama HTTP API |
 | Cloud AI | OpenAI, Anthropic, Google Gemini (via server-side API keys) |
 | Python environment | uv (fast Python package installer) |
 | Backend tests | pytest with mocked Ollama requests |
@@ -182,7 +182,7 @@ flowchart LR
 ### Requirements
 
 - **Python 3.11** or newer
-- **[uv](https://docs.astral.sh/uv/)** — fast Python package installer
+- **[uv](https://docs.astral.sh/uv/)**: fast Python package installer
 - **Node.js 20.19+** or **22.12+**
 - **[Ollama](https://ollama.com/download)** installed locally (for local models)
 
@@ -240,7 +240,7 @@ npm ci
 npm start
 ```
 
-The Electron app automatically starts the Python backend and serves the frontend via a built-in proxy server. It includes system tray support — closing the window minimizes to the tray instead of quitting.
+The Electron app automatically starts the Python backend and serves the frontend via a built-in proxy server. It includes system tray support: closing the window minimizes to the tray instead of quitting.
 
 To build a distributable package:
 
@@ -264,24 +264,24 @@ This script:
 2. Installs Python desktop dependencies (`pywebview`, `pyinstaller`)
 3. Packages everything into a portable folder using PyInstaller
 
-The output is a self-contained folder in `dist-desktop/` — copy it anywhere and run the `.exe`. No installation, no PowerShell, no browser tabs needed.
+The output is a self-contained folder in `dist-desktop/`: copy it anywhere and run the `.exe`. No installation, no PowerShell, no browser tabs needed.
 
 ---
 
 ## Configuration
 
-Defaults target Ollama at `http://127.0.0.1:11434`, store SQLite data at `backend/data/local-ai-control-center.db`, and bind the API to localhost. Optional API settings use the `LACC_` prefix:
+Defaults target Ollama at `http://127.0.0.1:11434`, store SQLite data at `backend/data/orbis.db`, and bind the API to localhost. Optional API settings use the `LACC_` prefix:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `LACC_OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Ollama HTTP API address |
-| `LACC_DATABASE_URL` | `sqlite:///./data/local-ai-control-center.db` | SQLite database path (relative to `backend/`) |
+| `LACC_DATABASE_URL` | `sqlite:///./data/orbis.db` | SQLite database path (relative to `backend/`) |
 | `LACC_HOST` | `127.0.0.1` | API bind address |
 | `LACC_PORT` | `8000` | API port |
 | `LACC_REQUEST_TIMEOUT_SECONDS` | `10` | Ollama connection and request timeout; response reads allow up to 5 minutes |
-| `LACC_OPENAI_API_KEY` | — | Enables OpenAI cloud models |
-| `LACC_ANTHROPIC_API_KEY` | — | Enables Anthropic cloud models |
-| `LACC_GEMINI_API_KEY` | — | Enables Google Gemini cloud models |
+| `LACC_OPENAI_API_KEY` | *None* | Enables OpenAI cloud models |
+| `LACC_ANTHROPIC_API_KEY` | *None* | Enables Anthropic cloud models |
+| `LACC_GEMINI_API_KEY` | *None* | Enables Google Gemini cloud models |
 | `LACC_DEFAULT_PROVIDER` | `ollama` | Default provider (`ollama`, `openai`, `anthropic`, or `google`) |
 
 Copy `.env.example` to `.env` in the repository root to customize settings. Start the API from `backend/` so the relative SQLite path resolves to `backend/data/`. The API’s CORS allowlist is restricted to local Vite development origins.
@@ -302,7 +302,7 @@ All endpoints are prefixed with `/api`. The API returns JSON responses unless no
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` | `/api/health` | Health check — returns `{"status": "ok"}` |
+| `GET` | `/api/health` | Health check, returns `{"status": "ok"}` |
 
 ### Ollama Status
 
@@ -499,22 +499,22 @@ npm run build
 
 ## Security and Local Use
 
-- **Local-only binding** — Keep the API and frontend bound to `127.0.0.1` for local use. Do not expose them to a network without adding authentication and reviewing CORS and access controls.
-- **Trusted Ollama endpoint** — The Ollama base URL is configurable for local setups; set it only to an endpoint you trust.
-- **No authentication** — The API does not provide authentication because it is intended to run locally. Anyone who can access the bound local service can use it.
-- **Local data storage** — Prompts, messages, conversation titles, and added document contents are stored in the local SQLite database. The database is excluded from version control.
-- **API key security** — Cloud API keys live only in the server's private environment (`.env`, kept out of source control, `chmod 600`). The browser never receives them.
-- **Cloud provider terms** — When using cloud providers, prompts and conversation content are sent to the provider's API. Review provider terms and charges.
-- **Cloud usage charges** — Cloud model usage may incur charges from the provider and is subject to the provider's terms.
-- **Playground safety** — Prompt Playground only accepts models reported as installed by the configured Ollama service. It does not download or delete models.
-- **Document tool limits** — The document tool stores text in SQLite and selects relevant passages with keyword matching; it is not a semantic search engine. Only `.txt` and `.md` files up to 200 KB are accepted.
+- **Local-only binding**: Keep the API and frontend bound to `127.0.0.1` for local use. Do not expose them to a network without adding authentication and reviewing CORS and access controls.
+- **Trusted Ollama endpoint**: The Ollama base URL is configurable for local setups; set it only to an endpoint you trust.
+- **No authentication**: The API does not provide authentication because it is intended to run locally. Anyone who can access the bound local service can use it.
+- **Local data storage**: Prompts, messages, conversation titles, and added document contents are stored in the local SQLite database. The database is excluded from version control.
+- **API key security**: Cloud API keys live only in the server's private environment (`.env`, kept out of source control, `chmod 600`). The browser never receives them.
+- **Cloud provider terms**: When using cloud providers, prompts and conversation content are sent to the provider's API. Review provider terms and charges.
+- **Cloud usage charges**: Cloud model usage may incur charges from the provider and is subject to the provider's terms.
+- **Playground safety**: Prompt Playground only accepts models reported as installed by the configured Ollama service. It does not download or delete models.
+- **Document tool limits**: The document tool stores text in SQLite and selects relevant passages with keyword matching; it is not a semantic search engine. Only `.txt` and `.md` files up to 200 KB are accepted.
 
 ---
 
 ## Project Structure
 
 ```text
-Local-AI/
+Orbis/
 ├── backend/                    # FastAPI API server
 │   ├── app/
 │   │   ├── api/                # API route modules

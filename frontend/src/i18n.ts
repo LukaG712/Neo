@@ -30,7 +30,7 @@ export const messages = {
     ollamaConnected: "Ollama connected",
     ollamaOffline: "Ollama offline",
     checkingOllama: "Checking Ollama",
-    welcomeKicker: "YOUR LOCAL AI WORKSPACE",
+    welcomeKicker: "YOUR Orbis WORKSPACE",
     thinkFreely: "Think freely.",
     runLocally: "Run locally.",
     welcomeCopy:

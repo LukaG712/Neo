@@ -1,21 +1,21 @@
-                                                                                                                            
- ```
- _____                   ____             _____       _____       _____                       _____          ____________   
-|\    \              ____\_  \__     _____\    \_   /      |_    |\    \                    /      |_       /            \  
- \\    \            /     /     \   /     /|     | /         \    \\    \                  /         \     |\___/\  \\___/| 
-  \\    \          /     /\      | /     / /____/||     /\    \    \\    \                |     /\    \     \|____\  \___|/ 
-   \|    | ______ |     |  |     ||     | |____|/ |    |  |    \    \|    | ______        |    |  |    \          |  |      
-    |    |/      \|     |  |     ||     |  _____  |     \/      \    |    |/      \       |     \/      \    __  /   / __   
-    /            ||     | /     /||\     \|\    \ |\      /\     \   /            |       |\      /\     \  /  \/   /_/  |  
-   /_____/\_____/||\     \_____/ || \_____\|    | | \_____\ \_____\ /_____/\_____/|       | \_____\ \_____\|____________/|  
-  |      | |    ||| \_____\   | / | |     /____/| | |     | |     ||      | |    ||       | |     | |     ||           | /  
-  |______|/|____|/ \ |    |___|/   \|_____|    ||  \|_____|\|_____||______|/|____|/        \|_____|\|_____||___________|/   
-                    \|____|               |____|/                                                                            
- ```
+                                                                                    
+```
+       ____     ___________      ______  ______    ____________             _____   
+   ____\_  \__  \          \     \     \|\     \  /            \       _____\    \  
+  /     /     \  \    /\    \     |     |\|     ||\___/\  \\___/|     /    / \    | 
+ /     /\      |  |   \_\    |    |     |/____ /  \|____\  \___|/    |    |  /___/| 
+|     |  |     |  |      ___/     |     |\     \        |  |      ____\    \ |   || 
+|     |  |     |  |      \  ____  |     | |     |  __  /   / __  /    /\    \|___|/ 
+|     | /     /| /     /\ \/    \ |     | |     | /  \/   /_/  ||    |/ \    \      
+|\     \_____/ |/_____/ |\______|/_____/|/_____/||____________/||\____\ /____/|     
+| \_____\   | / |     | | |     ||    |||     | ||           | /| |   ||    | |     
+ \ |    |___|/  |_____|/ \|_____||____|/|_____|/ |___________|/  \|___||____|/      
+  \|____|                                                                            
+```
 
-# Local AI Control Center
+# Orbis
 
-> **Een privé, lokale AI-werkruimte** — chat met Ollama- en cloudmodellen, vergelijk antwoorden, organiseer gesprekken en analyseer je gebruik — alles draaiend op je eigen computer.
+> **Een privé, lokale AI-werkruimte**: chat met Ollama- en cloudmodellen, vergelijk antwoorden, organiseer gesprekken en analyseer je gebruik, alles draaiend op je eigen computer.
 
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
@@ -71,9 +71,9 @@
 
 ## Wat is dit?
 
-Local AI Control Center is een lokaal draaiend dashboard voor AI-modellen. Je kunt gesprekken streamen, eerdere gesprekken beheren, generatiestatistieken bekijken en dezelfde prompt met meerdere geïnstalleerde modellen vergelijken. De frontend en API draaien op localhost; gesprekken en berichten worden opgeslagen in een lokale SQLite-database.
+Orbis is een lokaal draaiend dashboard voor AI-modellen. Je kunt gesprekken streamen, eerdere gesprekken beheren, generatiestatistieken bekijken en dezelfde prompt met meerdere geïnstalleerde modellen vergelijken. De frontend en API draaien op localhost; gesprekken en berichten worden opgeslagen in een lokale SQLite-database.
 
-Ondersteunt **Ollama** voor lokale modellen en **cloudproviders** (OpenAI, Anthropic, Google Gemini) via configureerbare API-sleutels — alles vanuit één uniforme interface.
+Ondersteunt **Ollama** voor lokale modellen en **cloudproviders** (OpenAI, Anthropic, Google Gemini) via configureerbare API-sleutels, alles vanuit één uniforme interface.
 
 ---
 
@@ -81,54 +81,54 @@ Ondersteunt **Ollama** voor lokale modellen en **cloudproviders** (OpenAI, Anthr
 
 ### Chat
 
-- **Chatten met streaming** — real-time token-voor-token-antwoorden opgeslagen in SQLite
+- **Chatten met streaming**: real-time token-voor-token-antwoorden opgeslagen in SQLite
 - **Systeemprompts** per gesprek voor aangepast AI-gedrag
-- **Berichtbewerking** — bewerk je verzonden berichten inline en ontvang een nieuw antwoord
-- **Antwoordregeneratie** — genereer het laatste AI-antwoord opnieuw met één klik
-- **Berichttijdstempels** — zie wanneer elk bericht is aangemaakt
-- **Kopiëren naar klembord** — één-klik-kopiëren op elk bericht met visuele feedback
+- **Berichtbewerking**: bewerk je verzonden berichten inline en ontvang een nieuw antwoord
+- **Antwoordregeneratie**: genereer het laatste AI-antwoord opnieuw met één klik
+- **Berichttijdstempels**: zie wanneer elk bericht is aangemaakt
+- **Kopiëren naar klembord**: één-klik-kopiëren op elk bericht met visuele feedback
 - **Individuele berichten verwijderen** uit gesprekken
-- **Generatiestatistieken** — tijd, prompt-evaluatietijd, tokenaantal en tokens/seconde
-- **Markdown-weergave** — antwoorden opgemaakt met lijsten, tabellen, codeblokken en meer
-- **Woord- en tekentelling** — live telling tijdens het typen van je bericht
+- **Generatiestatistieken**: tijd, prompt-evaluatietijd, tokenaantal en tokens/seconde
+- **Markdown-weergave**: antwoorden opgemaakt met lijsten, tabellen, codeblokken en meer
+- **Woord- en tekentelling**: live telling tijdens het typen van je bericht
 
 ### Organisatie
 
-- **Gesprekken zoeken** — volledige tekstzoekfunctie door titels EN berichtinhoud
-- **Gesprekken vastmaken** — houd belangrijke chats bovenaan de lijst
-- **Gesprekslabels** — maak, kleur en wijs labels toe om je chats te organiseren
-- **Gesprekken hernoemen** — inline hernoemen met automatische titel uit eerste bericht
-- **Gesprekken exporteren** — download als Markdown of JSON voor back-up en delen
-- **Gesprekken importeren** — herstel uit eerder geëxporteerde JSON-bestanden
-- **Gesprekken verwijderen** — verwijder gesprekken en alle bijbehorende berichten
+- **Gesprekken zoeken**: volledige tekstzoekfunctie door titels EN berichtinhoud
+- **Gesprekken vastmaken**: houd belangrijke chats bovenaan de lijst
+- **Gesprekstags**: maak, kleur en wijs tags toe om je chats te organiseren
+- **Gesprekken hernoemen**: inline hernoemen met automatische titel uit eerste bericht
+- **Gesprekken exporteren**: download als Markdown of JSON voor back-up en delen
+- **Gesprekken importeren**: herstel uit eerder geëxporteerde JSON-bestanden
+- **Gesprekken verwijderen**: verwijder gesprekken en alle bijbehorende berichten
 
 ### Productiviteit
 
-- **Modelvoorinstellingen** — sla en pas modelconfiguraties toe (model, systeemprompt, temperatuur, max tokens)
-- **Snelle Prompts** — sla herbruikbare promptsjablonen op met categorieën en snel invoegen
-- **Gespreksstatistieken** — bekijk berichtaantallen, tokengebruik, gemiddelde snelheid en meer
-- **Providerwisseling** — wissel tussen Ollama en cloudproviders per gesprek
+- **Modelvoorinstellingen**: sla en pas modelconfiguraties toe (model, systeemprompt, temperatuur, max tokens)
+- **Snelle Prompts**: sla herbruikbare promptsjablonen op met categorieën en snel invoegen
+- **Gespreksstatistieken**: bekijk berichtaantallen, tokengebruik, gemiddelde snelheid en meer
+- **Providerwisseling**: wissel tussen Ollama en cloudproviders per gesprek
 
 ### Tools
 
-- **Prompt-speeltuin** — voer één prompt parallel uit met 2–4 modellen en vergelijk resultaten
-- **Document Q&A** — upload `.txt`- en `.md`-bestanden en stel vragen over de inhoud
-- **Code-uitleg** — plak code en ontvang een duidelijke uitleg van wat het doet
+- **Prompt-speeltuin**: voer één prompt parallel uit met 2–4 modellen en vergelijk resultaten
+- **Document Q&A**: upload `.txt`- en `.md`-bestanden en stel vragen over de inhoud
+- **Code-uitleg**: plak code en ontvang een duidelijke uitleg van wat het doet
 
 ### Interface
 
-- **Donker/licht thema** — responsieve interface die zich aanpast aan je systeemvoorkeur
-- **Tweetaalige ondersteuning** — Engelse en Nederlandse interface, taalvoorkeur lokaal opgeslagen
-- **Laad-, lege en foutstatussen** — duidelijke feedback bij elke interactie
-- **Toetsenbordnavigatie** — volledige toetsenbordondersteuning voor gesprekkenlijst en besturingselementen
-- **Pictogramknoppen** — intuïtieve pictogrammen van Lucide React voor alle acties
+- **Donker/licht thema**: responsieve interface die zich aanpast aan je systeemvoorkeur
+- **Tweetaalige ondersteuning**: Engelse en Nederlandse interface, taalvoorkeur lokaal opgeslagen
+- **Laad-, lege- en foutstatussen**: duidelijke feedback voor elke interactie
+- **Toetsenbordnavigatie**: volledige toetsenbordondersteuning voor gesprekkenlijst en besturingselementen
+- **Pictogramknoppen**: intuïtieve pictogrammen van Lucide React voor alle acties
 
 ### Desktop-app
 
-- **Electron-app** — standalone desktopapplicatie met systeemvakondersteuning
-- **Minimaliseren naar systeemvak** — venster sluiten minimaliseert naar systeemvak in plaats van afsluiten
-- **PyInstaller portable build** — enkele `.exe`-map, geen installatie vereist
-- **Automatisch gestarte backend** — de Python-backend start automatisch met de desktop-app
+- **Electron-app**: standalone desktopapplicatie met systeemvakondersteuning
+- **Minimaliseren naar systeemvak**: venster sluiten minimaliseert naar systeemvak in plaats van afsluiten
+- **PyInstaller portable build**: enkele `.exe`-map, geen installatie vereist
+- **Automatisch gestarte backend**: de Python-backend start automatisch met de desktop-app
 
 ---
 
@@ -182,7 +182,7 @@ flowchart LR
 ### Benodigdheden
 
 - **Python 3.11** of nieuwer
-- **[uv](https://docs.astral.sh/uv/)** — snelle Python-pakketteninstallatie
+- **[uv](https://docs.astral.sh/uv/)**: snelle Python-pakketteninstallatie
 - **Node.js 20.19+** of **22.12+**
 - **[Ollama](https://ollama.com/download)** lokaal geïnstalleerd (voor lokale modellen)
 
@@ -240,7 +240,7 @@ npm ci
 npm start
 ```
 
-De Electron-app start automatisch de Python-backend en serveert de frontend via een ingebouwde proxyserver. Het bevat systeemvakondersteuning — het sluiten van het venster minimaliseert naar het systeemvak in plaats van afsluiten.
+De Electron-app start automatisch de Python-backend en serveert de frontend via een ingebouwde proxyserver. Het bevat systeemvakondersteuning: het sluiten van het venster minimaliseert naar het systeemvak in plaats van afsluiten.
 
 Voor het bouwen van een distribueerbaar pakket:
 
@@ -264,24 +264,24 @@ Dit script:
 2. Installeert Python-desktopdependencies (`pywebview`, `pyinstaller`)
 3. Pakt alles in een portable map met PyInstaller
 
-De output is een zelfstandige map in `dist-desktop/` — kopieer het overal naartoe en voer de `.exe` uit. Geen installatie, geen PowerShell, geen browsertabbladen nodig.
+De output is een zelfstandige map in `dist-desktop/`: kopieer het overal naartoe en voer de `.exe` uit. Geen installatie, geen PowerShell, geen browsertabbladen nodig.
 
 ---
 
 ## Configuratie
 
-Standaard gebruikt de app Ollama op `http://127.0.0.1:11434`, slaat SQLite-gegevens op in `backend/data/local-ai-control-center.db` en bindt de API aan localhost. Optionele API-instellingen gebruiken het voorvoegsel `LACC_`:
+Standaard gebruikt de app Ollama op `http://127.0.0.1:11434`, slaat SQLite-gegevens op in `backend/data/orbis.db` en bindt de API aan localhost. Optionele API-instellingen gebruiken het voorvoegsel `LACC_`:
 
 | Variabele | Standaardwaarde | Doel |
 | --- | --- | --- |
 | `LACC_OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Adres van de Ollama HTTP-API |
-| `LACC_DATABASE_URL` | `sqlite:///./data/local-ai-control-center.db` | Pad naar de SQLite-database (relatief aan `backend/`) |
+| `LACC_DATABASE_URL` | `sqlite:///./data/orbis.db` | Pad naar de SQLite-database (relatief aan `backend/`) |
 | `LACC_HOST` | `127.0.0.1` | Bindadres van de API |
 | `LACC_PORT` | `8000` | API-poort |
 | `LACC_REQUEST_TIMEOUT_SECONDS` | `10` | Time-out voor verbindingen en verzoeken aan Ollama; het lezen van antwoorden mag maximaal 5 minuten duren |
-| `LACC_OPENAI_API_KEY` | — | Schakelt OpenAI-cloudmodellen in |
-| `LACC_ANTHROPIC_API_KEY` | — | Schakelt Anthropic-cloudmodellen in |
-| `LACC_GEMINI_API_KEY` | — | Schakelt Google Gemini-cloudmodellen in |
+| `LACC_OPENAI_API_KEY` | *Geen* | Schakelt OpenAI-cloudmodellen in |
+| `LACC_ANTHROPIC_API_KEY` | *Geen* | Schakelt Anthropic-cloudmodellen in |
+| `LACC_GEMINI_API_KEY` | *Geen* | Schakelt Google Gemini-cloudmodellen in |
 | `LACC_DEFAULT_PROVIDER` | `ollama` | Standaardprovider (`ollama`, `openai`, `anthropic`, of `google`) |
 
 Kopieer `.env.example` naar `.env` in de hoofdmap om instellingen aan te passen. Start de API vanuit `backend/`, zodat het relatieve pad naar de database uitkomt op `backend/data/`. De CORS-toestaanlijst van de API is beperkt tot lokale Vite-ontwikkeladressen.
@@ -302,7 +302,7 @@ Alle endpoints beginnen met `/api`. De API retourneert JSON-antwoorden, tenzij a
 
 | Methode | Endpoint | Beschrijving |
 | --- | --- | --- |
-| `GET` | `/api/health` | Gezondheidscheck — retourneert `{"status": "ok"}` |
+| `GET` | `/api/health` | Gezondheidscheck, retourneert `{"status": "ok"}` |
 
 ### Ollama-status
 
@@ -499,22 +499,22 @@ npm run build
 
 ## Beveiliging en lokaal gebruik
 
-- **Alleen-lokaal binding** — Houd de API en frontend voor lokaal gebruik gebonden aan `127.0.0.1`. Stel ze niet bloot aan een netwerk zonder eerst authenticatie toe te voegen en CORS en toegangsbeheer te controleren.
-- **Vertrouwd Ollama-endpoint** — Het Ollama-adres is instelbaar voor lokale configuraties; gebruik alleen een endpoint dat je vertrouwt.
-- **Geen authenticatie** — De API heeft geen authenticatie, omdat deze bedoeld is voor lokaal gebruik. Iedereen met toegang tot de lokale service kan die gebruiken.
-- **Lokale gegevensopslag** — Prompts, berichten, gesprekstitels en toegevoegde documentinhoud worden opgeslagen in de lokale SQLite-database. De database wordt uitgesloten van versiebeheer.
-- **API-sleutelbeveiliging** — Cloud-API-sleutels verbleven alleen in de private omgeving van de server (`.env`, buiten versiebeheer, `chmod 600`). De browser ontvangt ze nooit.
-- **Cloudprovidervoorwaarden** — Bij gebruik van cloudproviders worden prompts en gespreksinhoud verzonden naar de API van de provider. Controleer de voorwaarden en kosten.
-- **Cloudgebruikskosten** — Gebruik van cloudmodellen kan kosten veroorzaken bij de provider en valt onder de voorwaarden van de provider.
-- **Speeltuiveiligheid** — De Prompt-speeltuin accepteert alleen modellen die door de ingestelde Ollama-service als geïnstalleerd worden gemeld. Modellen worden niet gedownload of verwijderd.
-- **Documenttoolbeperkingen** — De documenttool slaat tekst op in SQLite en selecteert relevante passages op basis van trefwoorden; het is geen semantische zoekmachine. Alleen `.txt`- en `.md`-bestanden tot 200 KB zijn toegestaan.
+- **Alleen-lokaal binding**: Houd de API en frontend voor lokaal gebruik gebonden aan `127.0.0.1`. Stel ze niet bloot aan een netwerk zonder eerst authenticatie toe te voegen en CORS en toegangsbeheer te controleren.
+- **Vertrouwd Ollama-endpoint**: Het Ollama-adres is instelbaar voor lokale configuraties; gebruik alleen een endpoint dat je vertrouwt.
+- **Geen authenticatie**: De API heeft geen authenticatie, omdat deze bedoeld is voor lokaal gebruik. Iedereen met toegang tot de lokale service kan die gebruiken.
+- **Lokale gegevensopslag**: Prompts, berichten, gesprekstitels en toegevoegde documentinhoud worden opgeslagen in de lokale SQLite-database. De database wordt uitgesloten van versiebeheer.
+- **API-sleutelbeveiliging**: Cloud-API-sleutels verbleven alleen in de private omgeving van de server (`.env`, buiten versiebeheer, `chmod 600`). De browser ontvangt ze nooit.
+- **Cloudprovidervoorwaarden**: Bij gebruik van cloudproviders worden prompts en gespreksinhoud verzonden naar de API van de provider. Controleer de voorwaarden en kosten.
+- **Cloudgebruikskosten**: Gebruik van cloudmodellen kan kosten veroorzaken bij de provider en valt onder de voorwaarden van de provider.
+- **Speeltuiveiligheid**: De Prompt-speeltuin accepteert alleen modellen die door de ingestelde Ollama-service als geïnstalleerd worden gemeld. Modellen worden niet gedownload of verwijderd.
+- **Documenttoolbeperkingen**: De documenttool slaat tekst op in SQLite en selecteert relevante passages op basis van trefwoorden; het is geen semantische zoekmachine. Alleen `.txt`- en `.md`-bestanden tot 200 KB zijn toegestaan.
 
 ---
 
 ## Projectstructuur
 
 ```text
-Local-AI/
+Orbis/
 ├── backend/                    # FastAPI API-server
 │   ├── app/
 │   │   ├── api/                # API-route modules

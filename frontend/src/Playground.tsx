@@ -23,13 +23,13 @@ type Result = {
   eval_duration?: number;
 };
 function time(ns?: number) {
-  if (ns == null) return "—";
+  if (ns == null) return "N/A";
   return ns >= 1e9 ? `${(ns / 1e9).toFixed(2)}s` : `${Math.round(ns / 1e6)}ms`;
 }
 function rate(r: Result) {
   return r.eval_count && r.eval_duration
     ? `${(r.eval_count / (r.eval_duration / 1e9)).toFixed(1)} tok/s`
-    : "—";
+    : "N/A";
 }
 
 export default function Playground({
@@ -241,7 +241,7 @@ export default function Playground({
                       </div>
                     </div>
                     <div className="result-token-count">
-                      {result.eval_count ?? "—"} {t("tokensGenerated")}
+                      {result.eval_count ?? "N/A"} {t("tokensGenerated")}
                     </div>
                   </>
                 )}

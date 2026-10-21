@@ -115,7 +115,7 @@ function createWindow() {
     minWidth: 900,
     minHeight: 600,
     show: false,
-    title: "Local AI Control Center",
+    title: "Orbis",
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -153,20 +153,20 @@ function createWindow() {
         ...process.env,
         LACC_HOST: "127.0.0.1",
         LACC_PORT: "8000",
-        LACC_DATABASE_URL: "sqlite:///./data/local-ai-control-center.db",
+        LACC_DATABASE_URL: "sqlite:///./data/orbis.db",
         LACC_OLLAMA_BASE_URL: "http://127.0.0.1:11434",
       },
     });
 
     backendProcess.stdout.on("data", (data) => {
-      console.log(`[local-ai-backend] ${data}`);
+      console.log(`[orbis-backend] ${data}`);
     });
     backendProcess.stderr.on("data", (data) => {
-      console.error(`[local-ai-backend err] ${data}`);
+      console.error(`[orbis-backend err] ${data}`);
     });
 
     backendProcess.on("exit", (code) => {
-      console.log(`[local-ai-backend] exited with code ${code}`);
+      console.log(`[orbis-backend] exited with code ${code}`);
       backendProcess = null;
     });
   };

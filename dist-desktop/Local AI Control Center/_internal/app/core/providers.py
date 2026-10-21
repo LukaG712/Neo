@@ -1,4 +1,4 @@
-"""API provider abstraction for Local AI Control Center.
+"""API provider abstraction for Orbis.
 
 Supports Ollama (local) and cloud providers (OpenAI, Anthropic, Google Gemini, OpenRouter, Groq).
 API keys are configured server-side via environment variables and are never
