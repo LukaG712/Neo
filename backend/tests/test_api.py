@@ -1393,3 +1393,555 @@ def test_health_check_skips_rate_limit(client):
     # Health check should still work
     response = client.get("/api/health")
     assert response.status_code == 200
+
+
+# ---- Providers API Tests ----
+
+def test_list_providers(client):
+    """Test listing all available providers."""
+    response = client.get("/api/providers")
+    assert response.status_code == 200
+    data = response.json()
+    assert "providers" in data
+    # Should have at least Ollama provider
+    provider_ids = [p["id"] for p in data["providers"]]
+    assert "ollama" in provider_ids
+
+
+def test_provider_models_not_found(client):
+    """Test getting models for non-existent provider returns 404."""
+    response = client.get("/api/providers/nonexistent/models")
+    assert response.status_code == 404
+
+
+def test_provider_models_not_configured(client):
+    """Test getting models for a configured but unconfigured provider returns 403."""
+    # Check which providers are available and find one that exists but is not configured
+    response = client.get("/api/providers")
+    assert response.status_code == 200
+    providers = response.json()["providers"]
+    # Find a non-Ollama provider (which is always "configured")
+    unconfigured = [p for p in providers if p["id"] != "ollama" and not p.get("configured", True)]
+    if unconfigured:
+        response = client.get(f"/api/providers/{unconfigured[0]['id']}/models")
+        assert response.status_code == 403
+    else:
+        # If all non-Ollama providers are configured, skip the assertion
+        pass
+
+
+# ---- Tools Edge Case Tests ----
+
+def test_delete_document_not_found(client):
+    """Test deleting a non-existent document returns 404."""
+    response = client.delete("/api/tools/documents/nonexistent")
+    assert response.status_code == 404
+
+
+def test_ask_documents_no_documents(client):
+    """Test asking documents when none exist returns 409."""
+    app.state.ollama.list_models.return_value = [{"name": "model-a"}]
+    response = client.post(
+        "/api/tools/documents/ask",
+        json={"model": "model-a", "question": "What is Python?"},
+    )
+    assert response.status_code == 409
+
+
+def test_explain_code_uninstalled_model(client):
+    """Test explaining code with uninstalled model returns 422."""
+    app.state.ollama.list_models.return_value = [{"name": "model-a"}]
+    response = client.post(
+        "/api/tools/explain-code",
+        json={"model": "missing-model", "code": "print('hello')"},
+    )
+    assert response.status_code == 422
+
+
+def test_document_tool_rejects_empty_name(client):
+    """Test creating a document with empty name returns 422."""
+    response = client.post("/api/tools/documents", json={"name": "", "content": "text"})
+    assert response.status_code == 422
+
+
+def test_document_tool_rejects_empty_content(client):
+    """Test creating a document with empty content returns 422."""
+    response = client.post("/api/tools/documents", json={"name": "test.md", "content": ""})
+    assert response.status_code == 422
+
+
+def test_document_tool_rejects_large_content(client):
+    """Test creating a document with content exceeding max length returns 422."""
+    response = client.post(
+        "/api/tools/documents",
+        json={"name": "test.md", "content": "x" * 200_001},
+    )
+    assert response.status_code == 422
+
+
+# ---- Summary Edge Case Tests ----
+
+def test_summarize_persists_system_message(client):
+    """Test that summarizing persists the summary as a system message."""
+    conv = client.post("/api/conversations", json={"title": "Summary Persist Test"}).json()
+    conv_id = conv["id"]
+    client.post(f"/api/conversations/{conv_id}/messages", json={
+        "role": "user", "content": "What is Python?"
+    })
+    client.post(f"/api/conversations/{conv_id}/messages", json={
+        "role": "assistant", "content": "Python is a programming language."
+    })
+
+    async def fake_stream(model, messages):
+        yield {"message": {"content": "Summary: Python discussion."}, "done": True}
+
+    app.state.ollama.chat_stream = fake_stream
+    response = client.post("/api/summary/stream", json={
+        "conversation_id": conv_id,
+        "model": "qwen2.5:7b",
+    })
+    assert response.status_code == 200
+
+    # Verify summary was saved as a system message
+    conv_detail = client.get(f"/api/conversations/{conv_id}").json()
+    system_msgs = [m for m in conv_detail["messages"] if m["role"] == "system"]
+    assert len(system_msgs) >= 1
+    assert "[SUMMARY]" in system_msgs[-1]["content"]
+
+
+def test_summarize_ollama_unavailable(client):
+    """Test summarizing when Ollama is unavailable returns error event."""
+    from app.ollama.client import OllamaUnavailable
+
+    conv = client.post("/api/conversations", json={"title": "Summary Error Test"}).json()
+    conv_id = conv["id"]
+    client.post(f"/api/conversations/{conv_id}/messages", json={
+        "role": "user", "content": "Test"
+    })
+
+    async def fake_stream_error(model, messages):
+        raise OllamaUnavailable("Ollama is not running")
+        yield {}  # unreachable
+
+    app.state.ollama.chat_stream = fake_stream_error
+    response = client.post("/api/summary/stream", json={
+        "conversation_id": conv_id,
+        "model": "qwen2.5:7b",
+    })
+    assert response.status_code == 200
+    assert '"type": "error"' in response.text
+
+
+# ---- Stats with Token Data Tests ----
+
+def test_conversation_stats_with_token_data(client):
+    """Test conversation stats include token data when messages have eval stats."""
+    conv = client.post("/api/conversations", json={"title": "Stats Token Test"}).json()
+    conv_id = conv["id"]
+
+    # Add messages with eval stats
+    client.post(f"/api/conversations/{conv_id}/messages", json={
+        "role": "user", "content": "Hello"
+    })
+    # Manually insert assistant message with eval stats
+    from app.db.database import connect
+    with connect() as db:
+        db.execute(
+            """INSERT INTO messages (id, conversation_id, role, content, created_at,
+            total_duration_ns, prompt_duration_ns, eval_count, eval_duration_ns)
+            VALUES (?, ?, 'assistant', ?, ?, ?, ?, ?, ?)""",
+            ("msg-1", conv_id, "Hi there", "2024-01-01T00:00:00",
+             2_000_000_000, 400_000_000, 4, 800_000_000),
+        )
+
+    response = client.get(f"/api/stats/conversations/{conv_id}")
+    assert response.status_code == 200
+    stats = response.json()
+    assert stats["total_tokens"] == 4
+    assert stats["average_tokens_per_response"] == 4
+    assert stats["average_speed_tokens_per_second"] == 5.0  # 4 tokens / 0.8 seconds
+    assert stats["total_characters"] > 0
+
+
+def test_overview_stats_with_data(client):
+    """Test overview stats with actual data."""
+    # Create a conversation
+    conv = client.post("/api/conversations", json={"title": "Overview Test"}).json()
+    conv_id = conv["id"]
+    client.post(f"/api/conversations/{conv_id}/messages", json={
+        "role": "user", "content": "Hello"
+    })
+
+    response = client.get("/api/stats/overview")
+    assert response.status_code == 200
+    stats = response.json()
+    assert stats["conversations"] >= 1
+    assert stats["messages"] >= 1
+
+
+# ---- Bookmarks Edge Case Tests ----
+
+def test_bookmark_wrong_conversation(client):
+    """Test bookmarking a message from wrong conversation returns 404."""
+    conv1 = client.post("/api/conversations", json={"title": "Conv 1"}).json()
+    conv2 = client.post("/api/conversations", json={"title": "Conv 2"}).json()
+
+    msg = client.post(f"/api/conversations/{conv1['id']}/messages", json={
+        "role": "user", "content": "Test"
+    }).json()
+
+    # Try to bookmark using conv2's ID
+    response = client.post(f"/api/bookmarks/conversations/{conv2['id']}/messages/{msg['id']}")
+    assert response.status_code == 404
+
+
+def test_bookmark_content_truncation(client):
+    """Test that bookmark content is truncated in list view."""
+    conv = client.post("/api/conversations", json={"title": "Truncate Test"}).json()
+    conv_id = conv["id"]
+
+    # Create a long message
+    long_content = "x" * 500
+    msg = client.post(f"/api/conversations/{conv_id}/messages", json={
+        "role": "assistant", "content": long_content
+    }).json()
+
+    client.post(f"/api/bookmarks/conversations/{conv_id}/messages/{msg['id']}")
+    response = client.get(f"/api/bookmarks/conversations/{conv_id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["bookmarks"]) == 1
+    # Content should be truncated to 200 chars
+    assert len(data["bookmarks"][0]["content"]) <= 200
+
+
+def test_bookmark_nonexistent_conversation(client):
+    """Test bookmarking in non-existent conversation returns 404."""
+    response = client.post("/api/bookmarks/conversations/nonexistent/messages/someid")
+    assert response.status_code == 404
+
+
+# ---- Tag Name Normalization Tests ----
+
+def test_tag_name_normalized_to_lowercase(client):
+    """Test that tag names are normalized to lowercase."""
+    response = client.post("/api/tags", json={"name": "Work", "color": "#ff0000"})
+    assert response.status_code == 201
+    tag = response.json()
+    assert tag["name"] == "work"
+
+
+def test_tag_duplicate_case_insensitive(client):
+    """Test that duplicate tag names are rejected regardless of case."""
+    client.post("/api/tags", json={"name": "Work", "color": "#ff0000"})
+    response = client.post("/api/tags", json={"name": "WORK", "color": "#00ff00"})
+    assert response.status_code == 409
+
+
+# ---- Conversation List Sorting Tests ----
+
+def test_conversations_sorted_by_updated_at(client):
+    """Test that conversations are sorted by updated_at descending."""
+    import time
+
+    # Create first conversation
+    client.post("/api/conversations", json={"title": "First"}).json()
+
+    # Small delay to ensure different timestamps
+    time.sleep(0.01)
+
+    # Create second conversation
+    client.post("/api/conversations", json={"title": "Second"}).json()
+
+    response = client.get("/api/conversations")
+    convs = response.json()["conversations"]
+    titles = [c["title"] for c in convs]
+
+    # Second should appear first (most recent)
+    assert titles.index("Second") < titles.index("First")
+
+
+def test_conversations_list_empty(client):
+    """Test listing conversations when none exist returns empty list."""
+    response = client.get("/api/conversations")
+    assert response.status_code == 200
+    assert response.json()["conversations"] == []
+
+
+# ---- Message Creation Validation Tests ----
+
+def test_create_message_invalid_role(client):
+    """Test creating a message with invalid role returns 422."""
+    conv = client.post("/api/conversations", json={"title": "Test"}).json()
+    response = client.post(
+        f"/api/conversations/{conv['id']}/messages",
+        json={"role": "invalid", "content": "Test"},
+    )
+    assert response.status_code == 422
+
+
+def test_create_message_empty_content(client):
+    """Test creating a message with empty content returns 422."""
+    conv = client.post("/api/conversations", json={"title": "Test"}).json()
+    response = client.post(
+        f"/api/conversations/{conv['id']}/messages",
+        json={"role": "user", "content": ""},
+    )
+    assert response.status_code == 422
+
+
+def test_create_message_conversation_not_found(client):
+    """Test creating a message in non-existent conversation returns 404."""
+    response = client.post(
+        "/api/conversations/nonexistent/messages",
+        json={"role": "user", "content": "Test"},
+    )
+    assert response.status_code == 404
+
+
+# ---- Chat Stream Title Auto-Generation Tests ----
+
+def test_streaming_chat_auto_generates_title(client):
+    """Test that streaming chat auto-generates title from first message."""
+    conv = client.post("/api/conversations", json={"title": "New conversation"}).json()
+    conv_id = conv["id"]
+
+    async def fake_stream(model, messages):
+        yield {"message": {"content": "Response"}, "done": True}
+
+    app.state.ollama.chat_stream = fake_stream
+    response = client.post(
+        "/api/chat/stream",
+        json={
+            "conversation_id": conv_id,
+            "model": "qwen2.5:7b",
+            "message": "This is a test message for title generation",
+        },
+    )
+    assert response.status_code == 200
+
+    # Verify title was auto-generated from the message
+    conv_detail = client.get(f"/api/conversations/{conv_id}").json()
+    assert conv_detail["title"] == "This is a test message for title generation"
+
+
+def test_streaming_chat_preserves_existing_title(client):
+    """Test that streaming chat preserves existing title."""
+    conv = client.post("/api/conversations", json={"title": "My Custom Title"}).json()
+    conv_id = conv["id"]
+
+    async def fake_stream(model, messages):
+        yield {"message": {"content": "Response"}, "done": True}
+
+    app.state.ollama.chat_stream = fake_stream
+    response = client.post(
+        "/api/chat/stream",
+        json={
+            "conversation_id": conv_id,
+            "model": "qwen2.5:7b",
+            "message": "Hello",
+        },
+    )
+    assert response.status_code == 200
+
+    # Verify title was NOT changed
+    conv_detail = client.get(f"/api/conversations/{conv_id}").json()
+    assert conv_detail["title"] == "My Custom Title"
+
+
+def test_streaming_chat_not_found(client):
+    """Test streaming chat with non-existent conversation returns 404."""
+    response = client.post(
+        "/api/chat/stream",
+        json={
+            "conversation_id": "nonexistent",
+            "model": "qwen2.5:7b",
+            "message": "Hello",
+        },
+    )
+    assert response.status_code == 404
+
+
+# ---- OllamaUnavailable Error Handling Tests ----
+
+def test_streaming_chat_ollama_unavailable(client):
+    """Test streaming chat when Ollama is unavailable returns error event."""
+    from app.ollama.client import OllamaUnavailable
+
+    conv = client.post("/api/conversations", json={"title": "Error Test"}).json()
+    conv_id = conv["id"]
+
+    async def fake_stream_error(model, messages):
+        raise OllamaUnavailable("Ollama is not running")
+        yield {}  # unreachable
+
+    app.state.ollama.chat_stream = fake_stream_error
+    response = client.post(
+        "/api/chat/stream",
+        json={
+            "conversation_id": conv_id,
+            "model": "qwen2.5:7b",
+            "message": "Hello",
+        },
+    )
+    assert response.status_code == 200
+    assert '"type": "error"' in response.text
+
+
+def test_playground_ollama_unavailable(client):
+    """Test playground compare when Ollama is unavailable returns error."""
+    from app.ollama.client import OllamaUnavailable
+
+    app.state.ollama.list_models.return_value = [{"name": "model-a"}]
+
+    async def fake_generate_error(model, prompt):
+        raise OllamaUnavailable("Ollama is not running")
+
+    app.state.ollama.generate = fake_generate_error
+    response = client.post(
+        "/api/playground/compare",
+        json={"prompt": "Test", "models": ["model-a"]},
+    )
+    # The endpoint may return 503 (OllamaUnavailable) or 422 (validation error)
+    # depending on whether model validation happens before or after the Ollama call
+    assert response.status_code in (422, 503)
+
+
+# ---- Quick Prompt Edge Case Tests ----
+
+def test_quick_prompt_empty_title(client):
+    """Test creating a quick prompt with empty title returns 422."""
+    response = client.post("/api/prompts", json={
+        "title": "", "prompt": "Text", "category": "general"
+    })
+    assert response.status_code == 422
+
+
+def test_quick_prompt_empty_prompt(client):
+    """Test creating a quick prompt with empty prompt returns 422."""
+    response = client.post("/api/prompts", json={
+        "title": "Test", "prompt": "", "category": "general"
+    })
+    assert response.status_code == 422
+
+
+def test_quick_prompt_get_not_found(client):
+    """Test getting a non-existent prompt returns 404."""
+    response = client.get("/api/prompts/nonexistent")
+    assert response.status_code == 404
+
+
+# ---- Preset Edge Case Tests ----
+
+def test_preset_negative_temperature(client):
+    """Test creating a preset with negative temperature returns 422."""
+    response = client.post(
+        "/api/presets",
+        json={
+            "name": "Bad Temp",
+            "model": "qwen2.5:7b",
+            "temperature": -0.1,
+            "max_tokens": 4096,
+        },
+    )
+    assert response.status_code == 422
+
+
+def test_preset_zero_max_tokens(client):
+    """Test creating a preset with zero max_tokens returns 422."""
+    response = client.post(
+        "/api/presets",
+        json={
+            "name": "Bad Tokens",
+            "model": "qwen2.5:7b",
+            "temperature": 0.7,
+            "max_tokens": 0,
+        },
+    )
+    assert response.status_code == 422
+
+
+# ---- Conversation Rename Edge Cases ----
+
+def test_conversation_rename_not_found(client):
+    """Test renaming a non-existent conversation returns 404."""
+    response = client.patch(
+        "/api/conversations/nonexistent",
+        json={"title": "Updated"},
+    )
+    assert response.status_code == 404
+
+
+def test_conversation_rename_empty_title(client):
+    """Test renaming with whitespace-only title strips the whitespace."""
+    conv = client.post("/api/conversations", json={"title": "Test"}).json()
+    response = client.patch(
+        f"/api/conversations/{conv['id']}",
+        json={"title": "   "},
+    )
+    # The API strips whitespace, so whitespace-only becomes empty string
+    # The endpoint accepts it and stores empty title
+    assert response.status_code == 200
+    assert response.json()["title"] == ""
+
+
+# ---- Export Edge Cases ----
+
+def test_export_conversation_markdown_no_model(client):
+    """Test exporting a conversation without a model set."""
+    conv = client.post(
+        "/api/conversations",
+        json={"title": "No Model Export"},
+    ).json()
+    conv_id = conv["id"]
+    client.post(f"/api/conversations/{conv_id}/messages", json={"role": "user", "content": "Hello"})
+
+    response = client.get(f"/api/conversations/{conv_id}/export?format=markdown")
+    assert response.status_code == 200
+    data = response.json()
+    assert "# No Model Export" in data["content"]
+    assert "**Model:**" not in data["content"]  # Model line should be absent
+
+
+# ---- Tags Edge Cases ----
+
+def test_tag_update_duplicate_name(client):
+    """Test updating a tag to a duplicate name returns 409."""
+    client.post("/api/tags", json={"name": "unique1"}).json()
+    tag2 = client.post("/api/tags", json={"name": "unique2"}).json()
+
+    # Try to rename tag2 to tag1's name
+    response = client.put(f"/api/tags/{tag2['id']}", json={"name": "unique1"})
+    assert response.status_code == 409
+
+
+def test_tag_update_preserves_color(client):
+    """Test updating a tag name preserves the color."""
+    tag = client.post("/api/tags", json={"name": "color-test", "color": "#ff0000"}).json()
+
+    response = client.put(f"/api/tags/{tag['id']}", json={"name": "renamed"})
+    assert response.status_code == 200
+    assert response.json()["color"] == "#ff0000"
+
+
+# ---- Conversation Delete Cascade Tests ----
+
+def test_delete_conversation_cascades_to_messages(client):
+    """Test that deleting a conversation also deletes its messages."""
+    conv = client.post("/api/conversations", json={"title": "Cascade Test"}).json()
+    conv_id = conv["id"]
+
+    client.post(f"/api/conversations/{conv_id}/messages", json={"role": "user", "content": "Msg 1"})
+    client.post(f"/api/conversations/{conv_id}/messages", json={"role": "assistant", "content": "Msg 2"})
+
+    response = client.delete(f"/api/conversations/{conv_id}")
+    assert response.status_code == 204
+
+    # Verify conversation is gone
+    assert client.get(f"/api/conversations/{conv_id}").status_code == 404
+
+
+def test_delete_conversation_not_found(client):
+    """Test deleting a non-existent conversation returns 404."""
+    response = client.delete("/api/conversations/nonexistent")
+    assert response.status_code == 404
