@@ -43,5 +43,5 @@ class WebSearchTool(BaseTool):
                 "Error: Web search is not available. "
                 "Install the 'ddgs' package: pip install ddgs"
             )
-        except Exception as exc:
+        except (ConnectionError, TimeoutError, OSError) as exc:
             return f"Error: {exc}"

@@ -1,4 +1,6 @@
 import math
+from typing import ClassVar
+
 from .base import BaseTool
 
 
@@ -14,7 +16,7 @@ class CalculatorTool(BaseTool):
         return "Evaluate a mathematical expression. Use with the 'expression' parameter."
 
     # Safe set of allowed names for eval
-    _ALLOWED = {
+    _ALLOWED: ClassVar[dict[str, object]] = {
         "abs": abs,
         "round": round,
         "min": min,
@@ -36,7 +38,7 @@ class CalculatorTool(BaseTool):
         if not expression:
             return "Error: No expression provided."
         try:
-            result = eval(expression, {"__builtins__": {}}, self._ALLOWED)  # noqa: S307
+            result = eval(expression, {"__builtins__": {}}, self._ALLOWED)
             return str(result)
-        except Exception as exc:
+        except (ValueError, TypeError, ZeroDivisionError, OverflowError, NameError) as exc:
             return f"Error: {exc}"

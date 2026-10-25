@@ -1,4 +1,5 @@
 import os
+
 from .base import BaseTool
 
 # Default tools directory – can be overridden via env var
@@ -35,5 +36,5 @@ class FileReadTool(BaseTool):
             if len(content) > 50000:
                 content = content[:50000] + "\n\n... [file truncated]"
             return content
-        except Exception as exc:
+        except OSError as exc:
             return f"Error: {exc}"

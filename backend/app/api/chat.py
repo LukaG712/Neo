@@ -57,8 +57,8 @@ def extract_text_from_file(file_path: str) -> str:
     try:
         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
             return f.read()
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to read file: {str(e)}")
+    except OSError as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read file: {e!s}")
 
 
 def describe_image(file_path: str) -> str:
@@ -92,8 +92,8 @@ async def upload_file(file: UploadFile):
     try:
         with open(file_path, "wb") as f:
             f.write(content)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {e!s}")
 
     # Extract content based on file type
     if ext in ALLOWED_TEXT_EXTENSIONS:
