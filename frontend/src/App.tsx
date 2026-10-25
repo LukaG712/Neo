@@ -1,36 +1,34 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Activity,
+  BookOpen,
+  Bookmark,
+  BookmarkPlus,
+  Braces,
   Check,
   ChevronDown,
-  Clipboard,
+  Clock,
   Cpu,
-  BookOpen,
-  Braces,
   Download,
+  FileText,
+  Lightbulb,
   MessageSquare,
   Moon,
   Pencil,
+  Pin,
   Plus,
   RefreshCw,
   Search,
   Send,
+  Settings,
   ShieldCheck,
   Sparkles,
   Sun,
+  Tag,
   Trash2,
+  Upload,
   X,
   Zap,
-  Settings,
-  Clock,
-  Tag,
   BarChart3,
-  Lightbulb,
-  Pin,
-  Upload,
-  Bookmark,
-  BookmarkPlus,
-  FileText,
 } from "lucide-react";
 import {
   api,
@@ -50,17 +48,12 @@ import Playground from "./Playground";
 import Tools from "./Tools";
 import MarkdownContent from "./MarkdownContent";
 import { messages, type Language, type MessageKey } from "./i18n";
-
-function compactDuration(ns?: number) {
-  if (ns == null) return "N/A";
-  const s = ns / 1e9;
-  return s >= 1 ? `${s.toFixed(2)}s` : `${Math.round(s * 1000)}ms`;
-}
-function speed(message: Message) {
-  return message.eval_count && message.eval_duration_ns
-    ? `${(message.eval_count / (message.eval_duration_ns / 1e9)).toFixed(1)} tok/s`
-    : null;
-}
+import type { UploadedFile } from "./components/ChatView";
+import Sidebar from "./components/Sidebar";
+import ChatView from "./components/ChatView";
+import SettingsPanel from "./components/SettingsPanel";
+import MessageBubble from "./components/MessageBubble";
+import ConversationItem from "./components/ConversationItem";
 
 export default function App() {
   const [language, setLanguage] = useState<Language>(() => {
@@ -135,6 +128,10 @@ export default function App() {
   const [bookmarks, setBookmarks] = useState<BookmarkType[]>([]);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [overviewStats, setOverviewStats] = useState<OverviewStats | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isSpeechSupported, setIsSpeechSupported] = useState(false);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
   const aborter = useRef<AbortController | null>(null);
@@ -402,14 +399,106 @@ export default function App() {
       setError((e as Error).message);
     }
   }
+  async function handleFileUpload(files: FileList) {
+    setUploading(true);
+    const newFiles: UploadedFile[] = [];
+    for (const file of Array.from(files)) {
+      try {
+        const result = await api.uploadFile(file);
+        newFiles.push({
+          filename: result.filename,
+          content: result.content,
+          file_type: result.file_type,
+        });
+      } catch (e) {
+        setError((e as Error).message);
+      }
+    }
+    setUploadedFiles((prev) => [...prev, ...newFiles]);
+    setUploading(false);
+  }
+
+  function removeUploadedFile(index: number) {
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  // Check for Speech Recognition support
+  useEffect(() => {
+    const supported = !!(window as any).SpeechRecognition || !!(window as any).webkitSpeechRecognition;
+    setIsSpeechSupported(supported);
+  }, []);
+
+  function handleVoiceInput() {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    if (isRecording) {
+      // Stop recording
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = language === "nl" ? "nl-NL" : "en-US";
+
+    recognition.onresult = (event: any) => {
+      let transcript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      if (event.results[event.results.length - 1].isFinal) {
+        setDraft((prev) => {
+          const current = prev.trim();
+          return current ? `${current} ${transcript.trim()}` : transcript.trim();
+        });
+      }
+    };
+
+    recognition.onerror = () => {
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+      recognitionRef.current = null;
+    };
+
+    recognition.start();
+    setIsRecording(true);
+    recognitionRef.current = recognition;
+  }
+
+  const recognitionRef = useRef<any>(null);
+
   async function sendMessage() {
-    const content = draft.trim();
-    if (!content || !model || streaming) return;
+    let content = draft.trim();
+    if (!content && uploadedFiles.length === 0) return;
+    if (!model || streaming) return;
+
+    // Prepend file contents to the message
+    if (uploadedFiles.length > 0) {
+      const fileContents = uploadedFiles.map((f) =>
+        f.file_type === "image"
+          ? `\n\n[Attached image: ${f.filename}]\n${f.content}`
+          : `\n\n[Attached file: ${f.filename}]\n\n\`\`\`
+${f.content}
+\`\`\``
+      ).join("\n");
+      content = content
+        ? `${content}\n\n${fileContents}`
+        : `Please analyze the following attached files:\n\n${fileContents}`;
+    }
+
     setError("");
     setDraft("");
     setReply("");
     setPendingUser(content);
     setStreaming(true);
+    setUploadedFiles([]);
     let current = active;
     try {
       if (!current) {
@@ -616,235 +705,6 @@ export default function App() {
   const isConnected = activeProvider === "ollama"
     ? status?.connected === true
     : providers.some((pr) => pr.id === activeProvider && pr.configured);
-  const conversationsMenu = (
-    <div className="mega-panel">
-      <div className="mega-menu-inner">
-        <aside className="mega-aside">
-          <button
-            className="new-chat mega-new"
-            onClick={() => {
-              setView("chat");
-              void newConversation();
-            }}
-          >
-            <Plus size={16} /> {t("newConversation")} <span>⌘ K</span>
-          </button>
-          <label className="search-box" title={t("searchShortcuts")}>
-            <Search size={14} />
-            <input
-              ref={searchInput}
-              placeholder={t("searchConversations")}
-              aria-label={t("searchConversations")}
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setHighlighted(0);
-              }}
-              onKeyDown={handleListNav}
-            />
-            <kbd>/</kbd>
-          </label>
-          <div className="mega-footer">
-            <div className={`engine-card ${isConnected ? "online" : ""}`}>
-              <div className="engine-indicator">
-                <Cpu size={15} />
-              </div>
-              <div>
-                <strong>{t("ollamaEngine")}</strong>
-                <small>
-                  {isConnected
-                    ? `${t("connected")}${status?.version ? ` · v${status.version}` : ""}`
-                    : t("notConnected")}
-                </small>
-              </div>
-              <span className="engine-dot" />
-            </div>
-          </div>
-        </aside>
-        <div className="mega-main">
-          <div className="mega-actions">
-            <button
-              type="button"
-              className="mega-tile"
-              onClick={() => {
-                setError("");
-                setView("playground");
-                setMenuOpen(false);
-              }}
-            >
-              <span className="mega-tile-icon">
-                <Sparkles size={17} />
-              </span>
-              <span className="mega-tile-text">
-                <b>{t("promptPlayground")}</b>
-                <small>
-                  {language === "nl"
-                    ? "Vergelijk meerdere modellen"
-                    : "Compare multiple models"}
-                </small>
-              </span>
-            </button>
-            <button
-              type="button"
-              className="mega-tile"
-              onClick={() => {
-                setError("");
-                setView("documents");
-                setMenuOpen(false);
-              }}
-            >
-              <span className="mega-tile-icon">
-                <BookOpen size={17} />
-              </span>
-              <span className="mega-tile-text">
-                <b>{language === "nl" ? "Document Q&A" : "Document Q&A"}</b>
-                <small>
-                  {language === "nl"
-                    ? "Vraag over je bestanden"
-                    : "Ask about your files"}
-                </small>
-              </span>
-            </button>
-            <button
-              type="button"
-              className="mega-tile"
-              onClick={() => {
-                setError("");
-                setView("code");
-                setMenuOpen(false);
-              }}
-            >
-              <span className="mega-tile-icon">
-                <Braces size={17} />
-              </span>
-              <span className="mega-tile-text">
-                <b>{language === "nl" ? "Code-uitleg" : "Code explainer"}</b>
-                <small>
-                  {language === "nl" ? "Laat code uitzoeken" : "Explain code"}
-                </small>
-              </span>
-            </button>
-          </div>
-          <div className="mega-label">
-            <span>{t("recent")}</span>
-            <span key={conversations.length} className="mega-count">
-              {conversations.length}
-            </span>
-          </div>
-          <div className="conversation-list">
-            {conversations.map((item, index) => (
-              <div
-                key={item.id}
-                className={`conversation-row ${active?.id === item.id ? "active" : ""} ${
-                  highlighted === index ? "keyboard-active" : ""
-                }`}
-                onMouseEnter={() => setHighlighted(index)}
-              >
-                <button
-                  className="conversation-select"
-                  onClick={() => void selectConversation(item)}
-                  title={item.title}
-                >
-                  <span className="conversation-title">{item.title}</span>
-                  <span className="conversation-model">
-                    {item.model || t("noModelSelected")}
-                  </span>
-                </button>
-                <div className="row-actions">
-                  {renaming === item.id ? (
-                    <>
-                      <button
-                        onClick={() => void renameConversation(item.id)}
-                        title={t("save")}
-                        aria-label={`${t("save")} ${item.title}`}
-                      >
-                        <Check size={14} />
-                      </button>
-                      <button
-                        onClick={() => setRenaming(null)}
-                        title={t("cancel")}
-                        aria-label={`${t("cancel")} ${item.title}`}
-                      >
-                        <X size={14} />
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={async () => {
-                          try {
-                            if (item.pinned) {
-                              await api.unpin(item.id);
-                            } else {
-                              await api.pin(item.id);
-                            }
-                            const list = await api.conversations(search);
-                            setConversations(list);
-                          } catch {}
-                        }}
-                        title={item.pinned ? t("unpin") : t("pin")}
-                        aria-label={item.pinned ? t("unpin") : t("pin")}
-                      >
-                        <Pin size={12} className={item.pinned ? "pinned-icon" : ""} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setRenaming(item.id);
-                          setRenameText(item.title);
-                        }}
-                        title={t("rename")}
-                        aria-label={`${t("rename")} ${item.title}`}
-                      >
-                        <Pencil size={13} />
-                      </button>
-                      <button
-                        onClick={() => void deleteConversation(item)}
-                        title={t("delete")}
-                        aria-label={`${t("delete")} ${item.title}`}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </>
-                  )}
-                </div>
-                {renaming === item.id && (
-                  <input
-                    className="rename-input"
-                    value={renameText}
-                    autoFocus
-                    aria-label={`Conversation title for ${item.title}`}
-                    onChange={(e) => setRenameText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") void renameConversation(item.id);
-                      if (e.key === "Escape") setRenaming(null);
-                    }}
-                  />
-                )}
-              </div>
-            ))}
-            {conversations.length === 0 && (
-              <div
-                key={
-                  loadingConversations
-                    ? "loading"
-                    : search
-                      ? "no-matches"
-                      : "empty"
-                }
-                className="sidebar-empty"
-              >
-                {loadingConversations
-                  ? t("loadingConversations")
-                  : search
-                    ? t("noMatches")
-                    : t("emptyConversations")}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="app-shell">
@@ -1036,7 +896,6 @@ export default function App() {
                 try {
                   const text = await file.text();
                   const data = JSON.parse(text);
-                  // Support both raw conversation format and exported format
                   const conv = data.conversation || data;
                   const msgs = data.messages || [];
                   await api.importConversation({
@@ -1353,27 +1212,14 @@ export default function App() {
         {menuOpen && (
           <div className="mega-backdrop" onClick={() => setMenuOpen(false)} />
         )}
-        {settingsOpen && active && (
-          <div className="settings-modal-overlay" onClick={() => setSettingsOpen(false)}>
-            <div className="settings-modal" onClick={e => e.stopPropagation()}>
-              <h3>{language === "nl" ? "Gespreksinstellingen" : "Conversation Settings"}</h3>
-              <label>
-                <span>{language === "nl" ? "Systeemprompt" : "System Prompt"}</span>
-                <textarea
-                  value={systemPrompt}
-                  onChange={e => setSystemPrompt(e.target.value)}
-                  placeholder={language === "nl" ? "Stel het gedrag van het AI-model in..." : "Set the AI model behavior..."}
-                  rows={4}
-                />
-                <small>{language === "nl" ? "De systeemprompt stelt het gedrag van het model in voor dit gesprek." : "The system prompt sets the model behavior for this conversation."}</small>
-              </label>
-              <div className="settings-actions">
-                <button onClick={() => setSettingsOpen(false)}>{language === "nl" ? "Annuleren" : "Cancel"}</button>
-                <button className="primary" onClick={() => void saveSystemPrompt()}>{language === "nl" ? "Opslaan" : "Save"}</button>
-              </div>
-            </div>
-          </div>
-        )}
+        <SettingsPanel
+          isOpen={settingsOpen && !!active}
+          systemPrompt={systemPrompt}
+          language={language}
+          onClose={() => setSettingsOpen(false)}
+          onSave={() => void saveSystemPrompt()}
+          onSystemPromptChange={(prompt) => setSystemPrompt(prompt)}
+        />
         {statsOpen && active && (
           <div className="settings-modal-overlay" onClick={() => setStatsOpen(false)}>
             <div className="settings-modal stats-modal" onClick={e => e.stopPropagation()}>
@@ -1446,26 +1292,61 @@ export default function App() {
             </div>
           </div>
         )}
-        {/* Overview stats in sidebar footer */}
-        {overviewStats && (
-          <div className="overview-stats">
-            <div className="overview-stat">
-              <span className="overview-stat-value">{overviewStats.conversations}</span>
-              <span className="overview-stat-label">{t("conversations").toLowerCase()}</span>
-            </div>
-            <div className="overview-stat">
-              <span className="overview-stat-value">{overviewStats.messages}</span>
-              <span className="overview-stat-label">{language === "nl" ? "berichten" : "messages"}</span>
-            </div>
-            <div className="overview-stat">
-              <span className="overview-stat-value">{overviewStats.total_tokens.toLocaleString()}</span>
-              <span className="overview-stat-label">{t("tokens").toLowerCase()}</span>
-            </div>
-          </div>
-        )}
-        <div className={`mega-menu ${menuOpen ? "open" : ""}`}>
-          {conversationsMenu}
-        </div>
+        <Sidebar
+          conversations={conversations}
+          active={active}
+          models={models}
+          providers={providers}
+          status={status}
+          activeProvider={activeProvider}
+          search={search}
+          highlighted={highlighted}
+          renaming={renaming}
+          renameText={renameText}
+          menuOpen={menuOpen}
+          view={view}
+          loadingConversations={loadingConversations}
+          overviewStats={overviewStats}
+          isConnected={isConnected}
+          t={t}
+          language={language}
+          onNewConversation={() => void newConversation()}
+          onSelectConversation={(item) => void selectConversation(item)}
+          onDeleteConversation={(item) => void deleteConversation(item)}
+          onPinConversation={async (item) => {
+            try {
+              if (item.pinned) {
+                await api.unpin(item.id);
+              } else {
+                await api.pin(item.id);
+              }
+              const list = await api.conversations(search);
+              setConversations(list);
+            } catch {}
+          }}
+          onStartRename={(item) => {
+            setRenaming(item.id);
+            setRenameText(item.title);
+          }}
+          onFinishRename={(id) => void renameConversation(id)}
+          onCancelRename={() => setRenaming(null)}
+          onRenameTextChange={(text) => setRenameText(text)}
+          onRenameKeyDown={(id, e) => {
+            if (e.key === "Enter") void renameConversation(id);
+            if (e.key === "Escape") setRenaming(null);
+          }}
+          onSearchChange={(value) => {
+            setSearch(value);
+            setHighlighted(0);
+          }}
+          onListNav={handleListNav}
+          onSetView={(v) => {
+            setError("");
+            setView(v);
+          }}
+          onToggleMenu={() => setMenuOpen(false)}
+          searchInputRef={searchInput}
+        />
         {view === "playground" ? (
           <Playground models={models} language={language} />
         ) : view === "documents" || view === "code" ? (
@@ -1477,479 +1358,137 @@ export default function App() {
             language={language}
           />
         ) : (
-          <section className="workspace">
-            <div className="chat-column">
-              <div
-                className={`chat-content ${active?.messages?.length || reply ? "has-messages" : ""}`}
-              >
-                {!active?.messages?.length && !reply && (
-                  <div className="welcome">
-                    <div className="welcome-mark" data-reveal="scale">
-                      <MessageSquare size={20} />
-                    </div>
-                    <div
-                      className="welcome-kicker"
-                      data-reveal
-                      style={
-                        { "--reveal-delay": "60ms" } as React.CSSProperties
-                      }
-                    >
-                      <span /> {t("welcomeKicker")}
-                    </div>
-                    <h1
-                      data-reveal
-                      style={
-                        { "--reveal-delay": "140ms" } as React.CSSProperties
-                      }
-                    >
-                      {t("thinkFreely")} <em>{t("runLocally")}</em>
-                    </h1>
-                    <p
-                      className="welcome-copy"
-                      data-reveal
-                      style={
-                        { "--reveal-delay": "220ms" } as React.CSSProperties
-                      }
-                    >
-                      {t("welcomeCopy")}
-                    </p>
-                    <div
-                      className="starter-card"
-                      data-reveal
-                      style={
-                        { "--reveal-delay": "300ms" } as React.CSSProperties
-                      }
-                    >
-                      <div className="starter-icon">
-                        <Zap size={17} />
-                      </div>
-                      <div>
-                        <b>
-                          {isConnected
-                            ? models.length
-                              ? t("readyWhenYouAre")
-                              : t("ollamaIsRunning")
-                            : status
-                              ? t("connectLocalModels")
-                              : t("checkingConnection")}
-                        </b>
-                        <span>
-                          {isConnected
-                            ? models.length
-                              ? t("chooseModelAndStart")
-                              : t("noModelsFound")
-                            : t("startOllama")}
-                        </span>
-                        {status && !isConnected && <code>ollama serve</code>}
-                      </div>
-                      <Activity size={15} className="starter-activity" />
-                    </div>
-                    <div
-                      className="privacy-note"
-                      data-reveal
-                      style={
-                        { "--reveal-delay": "380ms" } as React.CSSProperties
-                      }
-                    >
-                      <ShieldCheck size={13} /> {t("promptsStayLocal")}
-                    </div>
-                  </div>
-                )}
-                {active?.messages?.map((message, index) => (
-                  <article
-                    key={message.id}
-                    className={`message ${message.role}`}
-                    data-reveal
-                    style={
-                      {
-                        "--reveal-delay": `${Math.min(index, 6) * 45}ms`,
-                      } as React.CSSProperties
-                    }
-                  >
-                    <div className="message-avatar">
-                      {message.role === "assistant" ? (
-                        <Sparkles size={15} />
-                      ) : (
-                        <span>Y</span>
-                      )}
-                    </div>
-                    <div className="message-body">
-                      <div className="message-header">
-                        <div className="message-label">
-                          {message.role === "assistant" ? (
-                            <>
-                              {active.model || t("assistant")}{" "}
-                              <span className="model-badge">{t("local")}</span>
-                            </>
-                          ) : (
-                            t("you")
-                          )}
-                        </div>
-                        <div className="message-actions">
-                          {message.role === "user" && editingId !== message.id && (
-                            <button
-                              className="message-action-btn"
-                              onClick={() => {
-                                setEditingId(message.id);
-                                setEditText(message.content);
-                              }}
-                              title={t("edit")}
-                              aria-label={t("edit")}
-                            >
-                              <Pencil size={12} />
-                            </button>
-                          )}
-                          {message.role === "assistant" && (
-                            <button
-                              className="message-action-btn"
-                              onClick={async () => {
-                                if (!active || !model) return;
-                                setStreaming(true);
-                                setReply("");
-                                const controller = new AbortController();
-                                aborter.current = controller;
-                                try {
-                                  await api.regenerate(
-                                    active.id,
-                                    model,
-                                    (token) => setReply((text) => text + token),
-                                    controller.signal,
-                                    systemPrompt || undefined,
-                                  );
-                                } catch (e) {
-                                  const msg = (e as Error).message;
-                                  if (!controller.signal.aborted) setError(msg);
-                                } finally {
-                                  if (active) {
-                                    try {
-                                      const [detail, list] = await Promise.all([
-                                        api.conversation(active.id),
-                                        api.conversations(search),
-                                      ]);
-                                      setActive(detail);
-                                      setConversations(list);
-                                    } catch {}
-                                  }
-                                  setStreaming(false);
-                                  aborter.current = null;
-                                  setReply("");
-                                }
-                              }}
-                              title={t("regenerate")}
-                              aria-label={t("regenerate")}
-                            >
-                              <RefreshCw size={12} />
-                            </button>
-                          )}
-                          <button
-                            className="message-delete-btn"
-                            onClick={() => {
-                              if (window.confirm(language === "nl" ? "Bericht verwijderen?" : "Delete message?")) {
-                                void deleteMessage(message.id);
-                              }
-                            }}
-                            title={language === "nl" ? "Bericht verwijderen" : "Delete message"}
-                            aria-label={language === "nl" ? "Bericht verwijderen" : "Delete message"}
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                          <button
-                            className="message-action-btn"
-                            onClick={async () => {
-                              try {
-                                await navigator.clipboard.writeText(message.content);
-                                setCopiedId(message.id);
-                                setTimeout(() => setCopiedId(null), 1500);
-                              } catch {}
-                            }}
-                            title={copiedId === message.id ? t("copied") : t("copy")}
-                            aria-label={t("copy")}
-                          >
-                            {copiedId === message.id ? <Check size={12} /> : <Clipboard size={12} />}
-                          </button>
-                          <button
-                            className="message-action-btn"
-                            onClick={() => {
-                              if (bookmarkedIds.has(message.id)) {
-                                void handleRemoveBookmark(message.id);
-                              } else {
-                                void handleBookmarkMessage(message.id);
-                              }
-                            }}
-                            title={bookmarkedIds.has(message.id) ? t("unbookmark") : t("bookmark")}
-                            aria-label={bookmarkedIds.has(message.id) ? t("unbookmark") : t("bookmark")}
-                          >
-                            {bookmarkedIds.has(message.id)
-                              ? <Bookmark size={12} style={{fill: "var(--accent)"}} />
-                              : <BookmarkPlus size={12} />}
-                          </button>
-                        </div>
-                      </div>
-                      {editingId === message.id ? (
-                        <div className="message-edit">
-                          <textarea
-                            className="message-edit-textarea"
-                            value={editText}
-                            onChange={(e) => setEditText(e.target.value)}
-                            rows={Math.min(message.content.split('\n').length, 8)}
-                          />
-                          <div className="message-edit-actions">
-                            <button
-                              className="btn-cancel"
-                              onClick={() => setEditingId(null)}
-                            >
-                              {t("cancel")}
-                            </button>
-                            <button
-                              className="btn-save"
-                              onClick={async () => {
-                                if (!active || !editText.trim()) return;
-                                try {
-                                  await api.updateMessage(active.id, message.id, editText.trim());
-                                  setEditingId(null);
-                                  if (active) {
-                                    const [detail, list] = await Promise.all([
-                                      api.conversation(active.id),
-                                      api.conversations(search),
-                                    ]);
-                                    setActive(detail);
-                                    setConversations(list);
-                                  }
-                                } catch (e) {
-                                  setError((e as Error).message);
-                                }
-                              }}
-                            >
-                              {t("done")}
-                            </button>
-                          </div>
-                        </div>
-                      ) : message.role === "assistant" ? (
-                        <MarkdownContent className="message-text markdown-body">
-                          {message.content}
-                        </MarkdownContent>
-                      ) : (
-                        <div className="message-text">{message.content}</div>
-                      )}
-                      {message.created_at && (
-                        <div className="message-timestamp">
-                          <Clock size={10} />
-                          {new Date(message.created_at).toLocaleString(language === "nl" ? "nl-NL" : "en-US", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </div>
-                      )}
-                      {message.role === "assistant" &&
-                        (message.total_duration_ns || message.eval_count) && (
-                          <div className="stats-row">
-                            <span>
-                              <Zap size={12} />
-                              {compactDuration(message.total_duration_ns)}{" "}
-                              {t("total")}
-                            </span>
-                            <span>
-                              {compactDuration(message.prompt_duration_ns)}{" "}
-                              {t("prompt")}
-                            </span>
-                            <span>
-                              {message.eval_count ?? "N/A"} {t("tokens")}
-                            </span>
-                            {speed(message) && <span>{speed(message)}</span>}
-                          </div>
-                        )}
-                    </div>
-                  </article>
-                ))}
-                {streaming && pendingUser && (
-                  <article className="message user">
-                    <div className="message-avatar">
-                      <span>Y</span>
-                    </div>
-                    <div className="message-body">
-                      <div className="message-label">{t("you")}</div>
-                      <div className="message-text">{pendingUser}</div>
-                    </div>
-                  </article>
-                )}
-                {streaming && (
-                  <article className="message assistant">
-                    <div className="message-avatar">
-                      <Sparkles size={15} />
-                    </div>
-                    <div className="message-body">
-                      <div className="message-label">
-                        {model || t("assistant")}{" "}
-                        <span className="model-badge">{t("local")}</span>
-                      </div>
-                      {reply ? (
-                        <MarkdownContent className="message-text markdown-body">
-                          {reply}
-                        </MarkdownContent>
-                      ) : (
-                        <div className="message-text">
-                          <span className="typing">
-                            <i />
-                            <i />
-                            <i />
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </article>
-                )}
-                {error && (
-                  <div className="error-banner">
-                    <span>
-                      <X size={14} />
-                    </span>
-                    <div>
-                      <b>{t("somethingWentWrong")}</b>
-                      <p>{error}</p>
-                    </div>
-                    <button
-                      onClick={() => setError("")}
-                      aria-label={t("dismissError")}
-                    >
-                      <X size={15} />
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div className="composer-wrap">
-                <div className="composer">
-                  <textarea
-                    ref={textarea}
-                    aria-label={t("messageOllama")}
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onKeyDown={keyDown}
-                    placeholder={
-                      isConnected ? t("askAnything") : t("startOllamaToChat")
-                    }
-                    disabled={!isConnected || streaming}
-                    rows={1}
-                    onInput={(e) => {
-                      e.currentTarget.style.height = "auto";
-                      e.currentTarget.style.height = `${Math.min(e.currentTarget.scrollHeight, 160)}px`;
-                    }}
-                  />
-                  {draft.trim() && (
-                    <div className="word-count">
-                      <span>{draft.trim().split(/\s+/).length} {t("wordCount")}</span>
-                      <span className="word-count-sep">·</span>
-                      <span>{draft.length} {t("charCount")}</span>
-                    </div>
-                  )}
-                  <div className="composer-toolbar">
-                    <div className="composer-left">
-                      <div className="provider-picker-wrap">
-                        <button
-                          className="provider-picker"
-                          onClick={() => setModelMenu((v) => !v)}
-                          disabled={providerBusy || providers.length === 0}
-                        >
-                          <span className="model-dot" />
-                          <span>{activeProvider === "ollama" ? "Ollama" : activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1)}</span>
-                          <ChevronDown size={13} />
-                        </button>
-                        {modelMenu && providers.length > 0 && (
-                          <div className="model-menu">
-                            {providers.map((pr) => (
-                              <button
-                                key={pr.id}
-                                onClick={() => {
-                                  setActiveProvider(pr.id);
-                                  setModelMenu(false);
-                                  if (pr.id === "ollama") {
-                                    void api.models().then((ms) => {
-                                      setModels(ms);
-                                      setModel((current) => current || ms[0]?.name || "");
-                                    });
-                                  }
-                                }}
-                              >
-                                <span className="model-dot" />
-                                {pr.name}
-                                {pr.configured ? "" : " · not configured"}
-                                {activeProvider === pr.id && <Check size={13} />}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className="model-picker-wrap">
-                        <button
-                          className="model-picker"
-                          onClick={() => setModelMenu((v) => !v)}
-                          disabled={!isConnected || !models.length}
-                        >
-                          <span className="model-dot" />
-                          <span>{model || t("selectModel")}</span>
-                          <ChevronDown size={13} />
-                        </button>
-                        {modelMenu && (
-                          <div className="model-menu">
-                            {models.map((item) => (
-                              <button
-                                key={item.name}
-                                onClick={() => {
-                                  setModel(item.name);
-                                  setModelMenu(false);
-                                }}
-                              >
-                                <span className="model-dot" />
-                                {item.name}
-                                {model === item.name && <Check size={13} />}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                        <span className="local-indicator">
-                          <span />
-                          {activeProvider === "ollama" ? t("local") : t("cloud")}
-                        </span>
-                    </div>
-                    <div className="composer-right">
-                      <label className="field"><span>Temp</span><input type="range" min="0" max="2" step="0.1" value={temperature} onChange={(event) => setTemperature(parseFloat(event.target.value))} /></label>
-                      <label className="field"><span>Max tokens</span><input type="number" min="1" max="32768" step="1" value={maxTokens} onChange={(event) => setMaxTokens(parseInt(event.target.value, 10) || 4096)} /></label>
-                      <span className="send-hint">{t("sendHint")}</span>
-                      <button
-                        className="send-btn"
-                        onClick={() =>
-                          streaming
-                            ? aborter.current?.abort()
-                            : void sendMessage()
-                        }
-                        disabled={
-                          streaming
-                            ? false
-                            : !draft.trim() || !model || !isConnected
-                        }
-                        aria-label={
-                          streaming ? t("stopResponse") : t("sendMessage")
-                        }
-                      >
-                        {streaming ? <X size={15} /> : <Send size={15} />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                <div className="composer-disclaimer">
-                  {t("aiMayBeInaccurate")}
-                </div>
-              </div>
-            </div>
-            <footer className="workspace-footer">
-              <span>
-                <span className="footer-dot" /> {t("inferenceLocal")}
-              </span>
-              <span>
-                Neo <b>·</b> v0.1
-              </span>
-            </footer>
-          </section>
+          <ChatView
+            active={active}
+            models={models}
+            providers={providers}
+            model={model}
+            activeProvider={activeProvider}
+            temperature={temperature}
+            maxTokens={maxTokens}
+            draft={draft}
+            reply={reply}
+            streaming={streaming}
+            pendingUser={pendingUser}
+            error={error}
+            isConnected={isConnected}
+            editingId={editingId}
+            editText={editText}
+            copiedId={copiedId}
+            bookmarkedIds={bookmarkedIds}
+            language={language}
+            t={t}
+            textareaRef={textarea}
+            uploadedFiles={uploadedFiles}
+            uploading={uploading}
+            onSendMessage={() =>
+              streaming
+                ? aborter.current?.abort()
+                : void sendMessage()
+            }
+            onDraftChange={(d) => setDraft(d)}
+            onKeyDown={keyDown}
+            onModelChange={(m) => setModel(m)}
+            onProviderChange={(p) => {
+              setActiveProvider(p);
+              setModelMenu(false);
+              if (p === "ollama") {
+                void api.models().then((ms) => {
+                  setModels(ms);
+                  setModel((current) => current || ms[0]?.name || "");
+                });
+              }
+            }}
+            onTemperatureChange={(t) => setTemperature(t)}
+            onMaxTokensChange={(t) => setMaxTokens(t)}
+            onErrorClear={() => setError("")}
+            onEditStart={(id) => {
+              setEditingId(id);
+              const msg = active?.messages?.find((m) => m.id === id);
+              if (msg) setEditText(msg.content);
+            }}
+            onEditCancel={() => setEditingId(null)}
+            onEditSave={async (id) => {
+              if (!active || !editText.trim()) return;
+              try {
+                await api.updateMessage(active.id, id, editText.trim());
+                setEditingId(null);
+                if (active) {
+                  const [detail, list] = await Promise.all([
+                    api.conversation(active.id),
+                    api.conversations(search),
+                  ]);
+                  setActive(detail);
+                  setConversations(list);
+                }
+              } catch (e) {
+                setError((e as Error).message);
+              }
+            }}
+            onEditTextChange={(text) => setEditText(text)}
+            onRegenerate={async () => {
+              if (!active || !model) return;
+              setStreaming(true);
+              setReply("");
+              const controller = new AbortController();
+              aborter.current = controller;
+              try {
+                await api.regenerate(
+                  active.id,
+                  model,
+                  (token) => setReply((text) => text + token),
+                  controller.signal,
+                  systemPrompt || undefined,
+                );
+              } catch (e) {
+                const msg = (e as Error).message;
+                if (!controller.signal.aborted) setError(msg);
+              } finally {
+                if (active) {
+                  try {
+                    const [detail, list] = await Promise.all([
+                      api.conversation(active.id),
+                      api.conversations(search),
+                    ]);
+                    setActive(detail);
+                    setConversations(list);
+                  } catch {}
+                }
+                setStreaming(false);
+                aborter.current = null;
+                setReply("");
+              }
+            }}
+            onDeleteMessage={(id) => {
+              if (window.confirm(language === "nl" ? "Bericht verwijderen?" : "Delete message?")) {
+                void deleteMessage(id);
+              }
+            }}
+            onCopy={async (id) => {
+              try {
+                const msg = active?.messages?.find((m) => m.id === id);
+                if (msg) {
+                  await navigator.clipboard.writeText(msg.content);
+                  setCopiedId(id);
+                  setTimeout(() => setCopiedId(null), 1500);
+                }
+              } catch {}
+            }}
+            onBookmark={(id) => {
+              if (bookmarkedIds.has(id)) {
+                void handleRemoveBookmark(id);
+              } else {
+                void handleBookmarkMessage(id);
+              }
+            }}
+            onModelMenuToggle={() => setModelMenu((v) => !v)}
+            onFileUpload={(files) => void handleFileUpload(files)}
+            onRemoveFile={(index) => removeUploadedFile(index)}
+            onVoiceInput={() => handleVoiceInput()}
+            modelMenu={modelMenu}
+            isSpeechSupported={isSpeechSupported}
+            isRecording={isRecording}
+          />
         )}
       </main>
     </div>

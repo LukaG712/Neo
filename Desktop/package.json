@@ -1,7 +1,7 @@
 {
   "name": "Neo-desktop",
   "productName": "Neo",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Neo - private local-first workspace for Ollama models (portable desktop app)",
   "main": "electron/main.js",
   "author": "",

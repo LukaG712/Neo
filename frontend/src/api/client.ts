@@ -367,6 +367,20 @@ export const api = {
     request<{ status: string }>(`/api/bookmarks/conversations/${conversationId}/messages/${messageId}`, {
       method: "DELETE",
     }),
+  // File Upload
+  uploadFile: async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await fetch("/api/chat/upload", {
+      method: "POST",
+      body: formData,
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.detail || `Upload failed (${response.status})`);
+    }
+    return response.json();
+  },
   // Summary
   summarize: async (
     id: string,

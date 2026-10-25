@@ -1,15 +1,120 @@
+import os
 from datetime import UTC, datetime
 from json import dumps
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.db.database import connect
 from app.ollama.client import OllamaUnavailable
+from app.tools import CalculatorTool, FileReadTool, WebSearchTool
+
+
+def get_available_tools() -> list:
+    """Return list of available tools based on environment configuration."""
+    tools_enabled = os.environ.get("TOOLS_ENABLED", "calculator,file_read").split(",")
+    tools_enabled = [t.strip() for t in tools_enabled if t.strip()]
+    
+    tool_map = {
+        "calculator": CalculatorTool(),
+        "file_read": FileReadTool(),
+        "web_search": WebSearchTool(),
+    }
+    
+    return [tool_map[name] for name in tools_enabled if name in tool_map]
+
+
+def get_tools_json() -> list:
+    """Return tools in JSON format for the AI model."""
+    tools = get_available_tools()
+    return [
+        {"name": tool.name, "description": tool.description}
+        for tool in tools
+    ]
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
+
+# Upload directory
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# Allowed file types
+ALLOWED_TEXT_EXTENSIONS = {".txt", ".md", ".py", ".js", ".ts", ".jsx", ".tsx", ".html", ".css", ".json", ".xml", ".yaml", ".yml", ".toml", ".sh", ".bat", ".ps1", ".log", ".csv", ".sql", ".java", ".c", ".cpp", ".h", ".rs", ".go", ".rb", ".php", ".swift", ".kt", ".scala", ".r", ".m", ".pl", ".lua", ".dart", ".vue", ".svelte"}
+ALLOWED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+
+
+class UploadResponse(BaseModel):
+    filename: str
+    content: str
+    file_type: str  # "text" or "image"
+
+
+def extract_text_from_file(file_path: str) -> str:
+    """Extract text content from a file."""
+    try:
+        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            return f.read()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read file: {str(e)}")
+
+
+def describe_image(file_path: str) -> str:
+    """Generate a simple description for an image file."""
+    ext = os.path.splitext(file_path)[1].lower()
+    file_size = os.path.getsize(file_path)
+    size_str = f"{file_size / 1024:.1f}KB" if file_size < 1024 * 1024 else f"{file_size / (1024 * 1024):.1f}MB"
+    return f"[Image file: {os.path.basename(file_path)}, type: {ext}, size: {size_str}]"
+
+
+@router.post("/upload", response_model=UploadResponse)
+async def upload_file(file: UploadFile):
+    """Upload a file for use in chat context."""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename provided.")
+
+    # Check file extension
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ALLOWED_TEXT_EXTENSIONS and ext not in ALLOWED_IMAGE_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"File type '{ext}' is not supported.")
+
+    # Read file content
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="File too large (max 10MB).")
+
+    # Save file with unique name
+    unique_name = f"{uuid4()}{ext}"
+    file_path = os.path.join(UPLOAD_DIR, unique_name)
+
+    try:
+        with open(file_path, "wb") as f:
+            f.write(content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+
+    # Extract content based on file type
+    if ext in ALLOWED_TEXT_EXTENSIONS:
+        text_content = extract_text_from_file(file_path)
+        # Truncate very long files
+        if len(text_content) > 50000:
+            text_content = text_content[:50000] + "\n\n... [file truncated, too long]"
+        return UploadResponse(
+            filename=file.filename,
+            content=text_content,
+            file_type="text"
+        )
+    elif ext in ALLOWED_IMAGE_EXTENSIONS:
+        description = describe_image(file_path)
+        return UploadResponse(
+            filename=file.filename,
+            content=description,
+            file_type="image"
+        )
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported file type.")
 
 
 class ChatRequest(BaseModel):
@@ -19,6 +124,12 @@ class ChatRequest(BaseModel):
     system_prompt: str | None = None
     edit_message_id: str | None = None  # If set, edit this message instead of creating new
     regenerate: bool = False  # If True, regenerate the last assistant response
+
+
+@router.get("/tools")
+async def list_tools():
+    """List available tools for the AI model."""
+    return get_tools_json()
 
 class RegenerateRequest(BaseModel):
     conversation_id: str
