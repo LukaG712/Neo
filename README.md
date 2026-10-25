@@ -1,4 +1,4 @@
-# Neo — Your Private AI Workspace
+# Neo: Your Private AI Workspace
 
 > Chat with AI models locally and in the cloud, all from one private dashboard running on your machine.
 
@@ -12,9 +12,9 @@
 
 ## ✨ What can you do with Neo?
 
-Neo is your personal AI chat workspace. Think of it as a private, self-hosted alternative to chat apps — your conversations never leave your computer unless you choose cloud models.
+Neo is your personal AI chat workspace. Think of it as a private, self-hosted alternative to chat apps – your conversations never leave your computer unless you choose cloud models.
 
-**Chat** with any AI model — local (Ollama) or cloud (OpenAI, Anthropic, Gemini) — with streaming responses, message editing, bookmarks, and conversation summaries.
+**Chat** with any AI model – local (Ollama) or cloud (OpenAI, Anthropic, Gemini) – with streaming responses, message editing, bookmarks, and conversation summaries.
 
 **Organize** your chats with search, tags, pins, and export to Markdown or JSON.
 
@@ -22,7 +22,7 @@ Neo is your personal AI chat workspace. Think of it as a private, self-hosted al
 
 **Boost productivity** with saved model presets, quick prompt templates, and built-in tools like Document Q&A and code explanation.
 
-**Go offline** — with Ollama, everything runs locally with zero internet connection needed.
+**Go offline** – with Ollama, everything runs locally with zero internet connection needed.
 
 ---
 
@@ -40,7 +40,7 @@ Neo is your personal AI chat workspace. Think of it as a private, self-hosted al
 ollama pull qwen2.5:7b
 ```
 
-Any Ollama model works. The dashboard doesn't pull or delete models — Ollama manages them.
+Any Ollama model works. The dashboard doesn't pull or delete models – Ollama manages them.
 
 ### Step 2: Start the backend
 
@@ -89,7 +89,7 @@ To build a distributable package: `npm run build` → output in `Desktop/release
 .\build-desktop.ps1
 ```
 
-Creates a self-contained folder in `dist-desktop/` — copy it anywhere and run.
+Creates a self-contained folder in `dist-desktop/` – copy it anywhere and run.
 
 ---
 
@@ -97,44 +97,44 @@ Creates a self-contained folder in `dist-desktop/` — copy it anywhere and run.
 
 ### 💬 Chat
 
-- **Streaming responses** — see tokens appear in real-time
-- **Message editing** — change your message and get a fresh response
-- **Response regeneration** — re-roll the last AI answer with one click
-- **Bookmarks** — save important messages for quick reference
-- **Conversation summaries** — AI-generated recap of long chats
-- **Markdown rendering** — formatted responses with code blocks, tables, and lists
-- **Generation stats** — token count, speed, and timing for every response
-- **File uploads** — attach text files, code, and images directly in chat
-- **Voice input** — speak your messages using speech-to-text
-- **Plugin tools** — AI can use web search, calculator, and file reading tools
+- **Streaming responses**: see tokens appear in real-time
+- **Message editing**: change your message and get a fresh response
+- **Response regeneration**: re-roll the last AI answer with one click
+- **Bookmarks**: save important messages for quick reference
+- **Conversation summaries**: AI-generated recap of long chats
+- **Markdown rendering**: formatted responses with code blocks, tables, and lists
+- **Generation stats**: token count, speed, and timing for every response
+- **File uploads**: attach text files, code, and images directly in chat
+- **Voice input**: speak your messages using speech-to-text
+- **Plugin tools**: AI can use web search, calculator, and file reading tools
 
 ### 📂 Organization
 
-- **Full-text search** — find conversations by title or message content
-- **Pin conversations** — keep important chats at the top
-- **Tags** — color-coded labels to categorize your chats
-- **Export/Import** — download as Markdown or JSON, restore later
-- **Rename** — inline renaming with auto-generated titles
+- **Full-text search**: find conversations by title or message content
+- **Pin conversations**: keep important chats at the top
+- **Tags**: color-coded labels to categorize your chats
+- **Export/Import**: download as Markdown or JSON, restore later
+- **Rename**: inline renaming with auto-generated titles
 
 ### ⚡ Productivity
 
-- **Model presets** — save your favorite model configurations
-- **Quick Prompts** — reusable prompt templates with categories
-- **Statistics** — track token usage, message counts, and average speed
-- **Provider switching** — switch between Ollama and cloud models per conversation
+- **Model presets**: save your favorite model configurations
+- **Quick Prompts**: reusable prompt templates with categories
+- **Statistics**: track token usage, message counts, and average speed
+- **Provider switching**: switch between Ollama and cloud models per conversation
 
 ### 🛠️ Tools
 
-- **Prompt Playground** — run one prompt across 2–4 models and compare
-- **Document Q&A** — upload files and ask questions about their content
-- **Code explanation** — paste code and get a clear breakdown
+- **Prompt Playground**: run one prompt across 2–4 models and compare
+- **Document Q&A**: upload files and ask questions about their content
+- **Code explanation**: paste code and get a clear breakdown
 
 ### 🎨 Interface
 
-- **Dark/light theme** — follows your system preference
-- **Bilingual** — English and Dutch interface
-- **Keyboard shortcuts** — fast navigation without the mouse
-- **Desktop app** — standalone window with system tray support
+- **Dark/light theme**: follows your system preference
+- **Bilingual**: English and Dutch interface
+- **Keyboard shortcuts**: fast navigation without the mouse
+- **Desktop app**: standalone window with system tray support
 
 ---
 
@@ -231,11 +231,11 @@ All endpoints are prefixed with `/api`. See the [full API docs](#) for details.
 
 ## 🔒 Security & Privacy
 
-- **Local-only by default** — API binds to `127.0.0.1`, not accessible from outside your machine
-- **No authentication** — designed for local single-user use; don't expose to a network without adding auth
-- **Your data stays local** — conversations stored in SQLite on your machine
-- **API keys are server-side** — cloud API keys never reach the browser
-- **Cloud provider terms** — when using cloud models, content is sent to the provider's API
+- **Local-only by default**: API binds to `127.0.0.1`, not accessible from outside your machine
+- **No authentication**: designed for local single-user use; don't expose to a network without adding auth
+- **Your data stays local**: conversations stored in SQLite on your machine
+- **API keys are server-side**: cloud API keys never reach the browser
+- **Cloud provider terms**: when using cloud models, content is sent to the provider's API
 
 ---
 
@@ -285,7 +285,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📜 License
 
-MIT License — see [LICENSE](LICENSE) for details.
+MIT License – see [LICENSE](LICENSE) for details.
 
 ---
 

@@ -1,7 +1,7 @@
 import os
 from .base import BaseTool
 
-# Default tools directory — can be overridden via env var
+# Default tools directory – can be overridden via env var
 TOOLS_DIR = os.environ.get("NEO_TOOLS_DIR", os.path.expanduser("~"))
 
 
@@ -23,7 +23,7 @@ class FileReadTool(BaseTool):
         # Security: restrict to TOOLS_DIR
         target = os.path.realpath(os.path.join(TOOLS_DIR, path))
         if not target.startswith(os.path.realpath(TOOLS_DIR)):
-            return "Error: Access denied — path outside allowed directory."
+            return "Error: Access denied – path outside allowed directory."
 
         if not os.path.isfile(target):
             return f"Error: File not found: {path}"
