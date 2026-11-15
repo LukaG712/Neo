@@ -1,3 +1,5 @@
+import asyncio
+
 from .base import BaseTool
 
 
@@ -19,8 +21,11 @@ class WebSearchTool(BaseTool):
         try:
             from ddgs import DDGS
 
-            with DDGS() as ddgs:
-                results = ddgs.text(query, max_results=max_results)
+            def _search():
+                with DDGS() as ddgs:
+                    return ddgs.text(query, max_results=max_results)
+
+            results = await asyncio.to_thread(_search)
 
             if not results:
                 return f"No results found for: {query}"

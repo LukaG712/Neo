@@ -22,15 +22,23 @@ class RateLimiter:
         now = time.time()
         cutoff = now - self.window_seconds
 
-        # Remove old entries
-        self.requests[client_ip] = [
-            ts for ts in self.requests[client_ip] if ts > cutoff
+        # Prune expired IP entries to prevent unbounded memory growth
+        expired_ips = [
+            ip
+            for ip, timestamps in self.requests.items()
+            if not any(ts > cutoff for ts in timestamps)
         ]
+        for ip in expired_ips:
+            del self.requests[ip]
 
-        if len(self.requests[client_ip]) >= self.max_requests:
+        # Remove old entries for current IP
+        recent = [ts for ts in self.requests.get(client_ip, []) if ts > cutoff]
+        self.requests[client_ip] = recent
+
+        if len(recent) >= self.max_requests:
             return False
 
-        self.requests[client_ip].append(now)
+        recent.append(now)
         return True
 
 

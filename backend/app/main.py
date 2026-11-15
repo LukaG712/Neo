@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.bookmarks import router as bookmarks_router
 from app.api.chat import router as chat_router
@@ -74,3 +76,9 @@ async def ollama_models(request: Request):
         return {"models": await request.app.state.ollama.list_models()}
     except OllamaUnavailable as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+_FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+if _FRONTEND_DIST.is_dir():
+    app.mount("/", StaticFiles(directory=_FRONTEND_DIST, html=True), name="frontend")
+
