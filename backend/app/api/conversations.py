@@ -35,13 +35,15 @@ class ConversationImport(BaseModel):
 def list_conversations(search: str | None = Query(default=None, max_length=200)):
     with connect() as db:
         if search:
+            escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            pattern = f"%{escaped}%"
             # Search in titles and message content
             rows = db.execute(
                 "SELECT DISTINCT c.* FROM conversations c "
                 "LEFT JOIN messages m ON c.id = m.conversation_id "
-                "WHERE c.title LIKE ? OR m.content LIKE ? "
+                "WHERE c.title LIKE ? ESCAPE '\\' OR m.content LIKE ? ESCAPE '\\' "
                 "ORDER BY c.pinned DESC, c.updated_at DESC",
-                (f"%{search}%", f"%{search}%"),
+                (pattern, pattern),
             ).fetchall()
         else:
             rows = db.execute(

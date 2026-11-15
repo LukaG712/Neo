@@ -67,11 +67,7 @@ export default function MessageBubble({
   return (
     <article className={`message ${message.role}`}>
       <div className="message-avatar">
-        {message.role === "assistant" ? (
-          <Sparkles size={15} />
-        ) : (
-          <span>Y</span>
-        )}
+        {message.role === "assistant" ? <Sparkles size={15} /> : <span>Y</span>}
       </div>
       <div className="message-body">
         <div className="message-header">
@@ -109,8 +105,12 @@ export default function MessageBubble({
             <button
               className="message-delete-btn"
               onClick={onDelete}
-              title={language === "nl" ? "Bericht verwijderen" : "Delete message"}
-              aria-label={language === "nl" ? "Bericht verwijderen" : "Delete message"}
+              title={
+                language === "nl" ? "Bericht verwijderen" : "Delete message"
+              }
+              aria-label={
+                language === "nl" ? "Bericht verwijderen" : "Delete message"
+              }
             >
               <Trash2 size={12} />
             </button>
@@ -120,7 +120,11 @@ export default function MessageBubble({
               title={copiedId === message.id ? t("copied") : t("copy")}
               aria-label={t("copy")}
             >
-              {copiedId === message.id ? <Check size={12} /> : <Clipboard size={12} />}
+              {copiedId === message.id ? (
+                <Check size={12} />
+              ) : (
+                <Clipboard size={12} />
+              )}
             </button>
             <button
               className="message-action-btn"
@@ -128,9 +132,11 @@ export default function MessageBubble({
               title={isBookmarked ? t("unbookmark") : t("bookmark")}
               aria-label={isBookmarked ? t("unbookmark") : t("bookmark")}
             >
-              {isBookmarked
-                ? <Bookmark size={12} style={{fill: "var(--accent)"}} />
-                : <BookmarkPlus size={12} />}
+              {isBookmarked ? (
+                <Bookmark size={12} style={{ fill: "var(--accent)" }} />
+              ) : (
+                <BookmarkPlus size={12} />
+              )}
             </button>
           </div>
         </div>
@@ -140,19 +146,13 @@ export default function MessageBubble({
               className="message-edit-textarea"
               value={editText}
               onChange={(e) => onEditTextChange(e.target.value)}
-              rows={Math.min(message.content.split('\n').length, 8)}
+              rows={Math.min(message.content.split("\n").length, 8)}
             />
             <div className="message-edit-actions">
-              <button
-                className="btn-cancel"
-                onClick={onEditCancel}
-              >
+              <button className="btn-cancel" onClick={onEditCancel}>
                 {t("cancel")}
               </button>
-              <button
-                className="btn-save"
-                onClick={onEditSave}
-              >
+              <button className="btn-save" onClick={onEditSave}>
                 {t("done")}
               </button>
             </div>
@@ -167,10 +167,13 @@ export default function MessageBubble({
         {message.created_at && (
           <div className="message-timestamp">
             <Clock size={10} />
-            {new Date(message.created_at).toLocaleString(language === "nl" ? "nl-NL" : "en-US", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            {new Date(message.created_at).toLocaleString(
+              language === "nl" ? "nl-NL" : "en-US",
+              {
+                hour: "2-digit",
+                minute: "2-digit",
+              },
+            )}
           </div>
         )}
         {message.role === "assistant" &&
@@ -178,12 +181,10 @@ export default function MessageBubble({
             <div className="stats-row">
               <span>
                 <Zap size={12} />
-                {compactDuration(message.total_duration_ns)}{" "}
-                {t("total")}
+                {compactDuration(message.total_duration_ns)} {t("total")}
               </span>
               <span>
-                {compactDuration(message.prompt_duration_ns)}{" "}
-                {t("prompt")}
+                {compactDuration(message.prompt_duration_ns)} {t("prompt")}
               </span>
               <span>
                 {message.eval_count ?? "N/A"} {t("tokens")}

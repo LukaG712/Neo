@@ -26,7 +26,12 @@ export interface UploadedFile {
 }
 
 export interface ChatViewProps {
-  active: { id: string; title: string; model: string | null; messages?: Message[] } | null;
+  active: {
+    id: string;
+    title: string;
+    model: string | null;
+    messages?: Message[];
+  } | null;
   models: Model[];
   providers: ProviderStatus[];
   model: string;
@@ -134,35 +139,27 @@ export default function ChatView({
               <div
                 className="welcome-kicker"
                 data-reveal
-                style={
-                  { "--reveal-delay": "60ms" } as React.CSSProperties
-                }
+                style={{ "--reveal-delay": "60ms" } as React.CSSProperties}
               >
                 <span /> {t("welcomeKicker")}
               </div>
               <h1
                 data-reveal
-                style={
-                  { "--reveal-delay": "140ms" } as React.CSSProperties
-                }
+                style={{ "--reveal-delay": "140ms" } as React.CSSProperties}
               >
                 {t("thinkFreely")} <em>{t("runLocally")}</em>
               </h1>
               <p
                 className="welcome-copy"
                 data-reveal
-                style={
-                  { "--reveal-delay": "220ms" } as React.CSSProperties
-                }
+                style={{ "--reveal-delay": "220ms" } as React.CSSProperties}
               >
                 {t("welcomeCopy")}
               </p>
               <div
                 className="starter-card"
                 data-reveal
-                style={
-                  { "--reveal-delay": "300ms" } as React.CSSProperties
-                }
+                style={{ "--reveal-delay": "300ms" } as React.CSSProperties}
               >
                 <div className="starter-icon">
                   <Zap size={17} />
@@ -188,9 +185,7 @@ export default function ChatView({
               <div
                 className="privacy-note"
                 data-reveal
-                style={
-                  { "--reveal-delay": "380ms" } as React.CSSProperties
-                }
+                style={{ "--reveal-delay": "380ms" } as React.CSSProperties}
               >
                 <ShieldCheck size={13} /> {t("promptsStayLocal")}
               </div>
@@ -263,10 +258,7 @@ export default function ChatView({
                 <b>{t("somethingWentWrong")}</b>
                 <p>{error}</p>
               </div>
-              <button
-                onClick={onErrorClear}
-                aria-label={t("dismissError")}
-              >
+              <button onClick={onErrorClear} aria-label={t("dismissError")}>
                 <X size={15} />
               </button>
             </div>
@@ -277,7 +269,11 @@ export default function ChatView({
             <div className="file-attachments">
               {uploadedFiles.map((file, index) => (
                 <div key={index} className="file-attachment-chip">
-                  {file.file_type === "image" ? <Image size={12} /> : <FileText size={12} />}
+                  {file.file_type === "image" ? (
+                    <Image size={12} />
+                  ) : (
+                    <FileText size={12} />
+                  )}
                   <span className="file-attachment-name">{file.filename}</span>
                   <button
                     className="file-attachment-remove"
@@ -309,9 +305,13 @@ export default function ChatView({
             />
             {draft.trim() && (
               <div className="word-count">
-                <span>{draft.trim().split(/\s+/).length} {t("wordCount")}</span>
+                <span>
+                  {draft.trim().split(/\s+/).length} {t("wordCount")}
+                </span>
                 <span className="word-count-sep">·</span>
-                <span>{draft.length} {t("charCount")}</span>
+                <span>
+                  {draft.length} {t("charCount")}
+                </span>
               </div>
             )}
             <div className="composer-toolbar">
@@ -323,7 +323,8 @@ export default function ChatView({
                     const input = document.createElement("input");
                     input.type = "file";
                     input.multiple = true;
-                    input.accept = ".txt,.md,.py,.js,.ts,.jsx,.tsx,.html,.css,.json,.xml,.yaml,.yml,.toml,.sh,.bat,.ps1,.log,.csv,.sql,.java,.c,.cpp,.h,.rs,.go,.rb,.php,.swift,.kt,.scala,.png,.jpg,.jpeg,.gif,.webp,.svg";
+                    input.accept =
+                      ".txt,.md,.py,.js,.ts,.jsx,.tsx,.html,.css,.json,.xml,.yaml,.yml,.toml,.sh,.bat,.ps1,.log,.csv,.sql,.java,.c,.cpp,.h,.rs,.go,.rb,.php,.swift,.kt,.scala,.png,.jpg,.jpeg,.gif,.webp,.svg";
                     input.onchange = (e) => {
                       const files = (e.target as HTMLInputElement).files;
                       if (files) onFileUpload(files);
@@ -331,29 +332,40 @@ export default function ChatView({
                     input.click();
                   }}
                   disabled={!isConnected || streaming || uploading}
-                  title={language === "nl" ? "Bestand toevoegen" : "Attach file"}
+                  title={
+                    language === "nl" ? "Bestand toevoegen" : "Attach file"
+                  }
                 >
-                  {uploading ? <Zap size={14} className="spinning" /> : <Upload size={14} />}
-                  </button>
-                  {isSpeechSupported && (
-                    <button
-                      type="button"
-                      className={`composer-mic-btn ${isRecording ? "recording" : ""}`}
-                      onClick={onVoiceInput}
-                      disabled={!isConnected || streaming}
-                      title={language === "nl" ? "Spraakinput" : "Voice input"}
-                    >
-                      <Mic size={14} />
-                    </button>
+                  {uploading ? (
+                    <Zap size={14} className="spinning" />
+                  ) : (
+                    <Upload size={14} />
                   )}
-                  <div className="provider-picker-wrap">
+                </button>
+                {isSpeechSupported && (
+                  <button
+                    type="button"
+                    className={`composer-mic-btn ${isRecording ? "recording" : ""}`}
+                    onClick={onVoiceInput}
+                    disabled={!isConnected || streaming}
+                    title={language === "nl" ? "Spraakinput" : "Voice input"}
+                  >
+                    <Mic size={14} />
+                  </button>
+                )}
+                <div className="provider-picker-wrap">
                   <button
                     className="provider-picker"
                     onClick={onModelMenuToggle}
                     disabled={providers.length === 0}
                   >
                     <span className="model-dot" />
-                    <span>{activeProvider === "ollama" ? "Ollama" : activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1)}</span>
+                    <span>
+                      {activeProvider === "ollama"
+                        ? "Ollama"
+                        : activeProvider.charAt(0).toUpperCase() +
+                          activeProvider.slice(1)}
+                    </span>
                     <ChevronDown size={13} />
                   </button>
                   {modelMenu && providers.length > 0 && (
@@ -417,7 +429,9 @@ export default function ChatView({
                     max="2"
                     step="0.1"
                     value={temperature}
-                    onChange={(event) => onTemperatureChange(parseFloat(event.target.value))}
+                    onChange={(event) =>
+                      onTemperatureChange(parseFloat(event.target.value))
+                    }
                   />
                 </label>
                 <label className="field">
@@ -428,7 +442,11 @@ export default function ChatView({
                     max="32768"
                     step="1"
                     value={maxTokens}
-                    onChange={(event) => onMaxTokensChange(parseInt(event.target.value, 10) || 4096)}
+                    onChange={(event) =>
+                      onMaxTokensChange(
+                        parseInt(event.target.value, 10) || 4096,
+                      )
+                    }
                   />
                 </label>
                 <span className="send-hint">{t("sendHint")}</span>
@@ -436,22 +454,16 @@ export default function ChatView({
                   className="send-btn"
                   onClick={() => onSendMessage()}
                   disabled={
-                    streaming
-                      ? false
-                      : !draft.trim() || !model || !isConnected
+                    streaming ? false : !draft.trim() || !model || !isConnected
                   }
-                  aria-label={
-                    streaming ? t("stopResponse") : t("sendMessage")
-                  }
+                  aria-label={streaming ? t("stopResponse") : t("sendMessage")}
                 >
                   {streaming ? <X size={15} /> : <Send size={15} />}
                 </button>
               </div>
             </div>
           </div>
-          <div className="composer-disclaimer">
-            {t("aiMayBeInaccurate")}
-          </div>
+          <div className="composer-disclaimer">{t("aiMayBeInaccurate")}</div>
         </div>
       </div>
       <footer className="workspace-footer">

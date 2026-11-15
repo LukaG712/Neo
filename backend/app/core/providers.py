@@ -7,9 +7,11 @@ exposed to the frontend.
 
 from __future__ import annotations
 
+import re
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -21,13 +23,24 @@ class ProviderError(Exception):
 class BaseProvider(ABC):
     """Abstract base class for AI providers."""
 
-    def __init__(self, name: str, base_url: str | None = None, timeout: float = 10.0) -> None:
+    def __init__(
+        self,
+        name: str,
+        base_url: str | None = None,
+        timeout: float = 10.0,
+        trust_env: bool = True,
+    ) -> None:
         self.name = name
         self.base_url = base_url
-        self._client = httpx.AsyncClient(
-            base_url=base_url.rstrip("/") if base_url else None,
-            timeout=httpx.Timeout(timeout, read=300.0),
-        ) if base_url else None
+        self._client = (
+            httpx.AsyncClient(
+                base_url=base_url.rstrip("/") if base_url else None,
+                timeout=httpx.Timeout(timeout, read=300.0),
+                trust_env=trust_env,
+            )
+            if base_url
+            else None
+        )
 
     @abstractmethod
     async def list_models(self) -> list[dict[str, Any]]:
@@ -50,7 +63,7 @@ class OllamaProvider(BaseProvider):
     """Ollama local provider."""
 
     def __init__(self, base_url: str, timeout: float = 10.0) -> None:
-        super().__init__("ollama", base_url, timeout)
+        super().__init__("ollama", base_url, timeout, trust_env=False)
 
     async def list_models(self) -> list[dict[str, Any]]:
         assert self._client is not None
@@ -204,15 +217,23 @@ class OpenAIProvider(BaseProvider):
 class GoogleProvider(BaseProvider):
     """Google Gemini cloud provider."""
 
+    _MODEL_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
+
     def __init__(self, api_key: str, timeout: float = 10.0) -> None:
         super().__init__("google", "https://generativelanguage.googleapis.com", timeout)
         self.api_key = api_key
+
+    def _safe_model(self, model: str) -> str:
+        if not model or not self._MODEL_PATTERN.fullmatch(model):
+            raise ProviderError("Invalid Google Gemini model identifier.")
+        return quote(model, safe="")
 
     async def list_models(self) -> list[dict[str, Any]]:
         assert self._client is not None
         try:
             response = await self._client.get(
-                f"/v1beta/models?key={self.api_key}",
+                "/v1beta/models",
+                headers={"x-goog-api-key": self.api_key},
             )
             response.raise_for_status()
             data = response.json()
@@ -230,18 +251,31 @@ class GoogleProvider(BaseProvider):
 
     async def chat_stream(self, model: str, messages: list[dict[str, Any]], temperature: float = 0.7, max_tokens: int = 4096) -> AsyncIterator[dict[str, Any]]:
         assert self._client is not None
+        safe_model = self._safe_model(model)
+        system_parts = []
         contents = []
         for msg in messages:
-            role = "user" if msg["role"] == "user" else "model"
             if msg["role"] == "system":
+                if msg.get("content"):
+                    system_parts.append({"text": msg["content"]})
                 continue
+            role = "user" if msg["role"] == "user" else "model"
             contents.append({"role": role, "parts": [{"text": msg["content"]}]})
+        payload: dict[str, Any] = {
+            "contents": contents,
+            "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
+        }
+        if system_parts:
+            payload["systemInstruction"] = {"parts": system_parts}
         try:
             async with self._client.stream(
                 "POST",
-                f"/v1beta/models/{model}:streamGenerateContent?key={self.api_key}",
-                headers={"Content-Type": "application/json"},
-                json={"contents": contents, "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens}},
+                f"/v1beta/models/{safe_model}:streamGenerateContent",
+                headers={
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": self.api_key,
+                },
+                json=payload,
             ) as response:
                 response.raise_for_status()
                 import json
@@ -271,10 +305,14 @@ class GoogleProvider(BaseProvider):
 
     async def generate(self, model: str, prompt: str, temperature: float = 0.7, max_tokens: int = 4096) -> dict[str, Any]:
         assert self._client is not None
+        safe_model = self._safe_model(model)
         try:
             response = await self._client.post(
-                f"/v1beta/models/{model}:generateContent?key={self.api_key}",
-                headers={"Content-Type": "application/json"},
+                f"/v1beta/models/{safe_model}:generateContent",
+                headers={
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": self.api_key,
+                },
                 json={"contents": [{"role": "user", "parts": [{"text": prompt}]}], "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens}},
             )
             response.raise_for_status()

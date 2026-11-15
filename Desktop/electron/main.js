@@ -9,7 +9,7 @@ let backendProcess = null;
 let proxyServer = null;
 let tray = null;
 
-const FRONTEND_DIST = path.join(__dirname, "..", "frontend", "dist");
+const FRONTEND_DIST = path.join(__dirname, "..", "..", "frontend", "dist");
 const BACKEND_PORT = 8000;
 const PROXY_PORT = 3001;
 
@@ -192,10 +192,12 @@ function createWindow() {
 
   // Minimize to tray instead of closing
   mainWindow.on("close", (e) => {
-    e.preventDefault();
-    mainWindow.hide();
-    if (process.platform === "darwin") {
-      app.dock.hide();
+    if (!app.isQuitting) {
+      e.preventDefault();
+      mainWindow.hide();
+      if (process.platform === "darwin") {
+        app.dock.hide();
+      }
     }
   });
 
@@ -204,10 +206,10 @@ function createWindow() {
 
   // Start the Python backend
   const startBackend = () => {
-    const backendPath = path.join(__dirname, "..", "backend", "app", "__main__.py");
+    const backendPath = path.join(__dirname, "..", "..", "backend", "app", "__main__.py");
     const python = process.platform === "win32" ? "python" : "python3";
     backendProcess = spawn(python, [backendPath], {
-      cwd: path.join(__dirname, "..", "backend"),
+      cwd: path.join(__dirname, "..", "..", "backend"),
       stdio: ["ignore", "pipe", "pipe"],
       env: {
         ...process.env,
@@ -242,7 +244,14 @@ function createWindow() {
   }, 2500);
 
   ipcMain.handle("open-external", async (event, targetUrl) => {
-    await shell.openExternal(targetUrl);
+    try {
+      const parsed = new URL(targetUrl);
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+        await shell.openExternal(parsed.toString());
+      }
+    } catch {
+      // Ignore invalid URLs
+    }
   });
 
   ipcMain.handle("quit-app", () => {

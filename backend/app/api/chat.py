@@ -156,7 +156,7 @@ async def regenerate_chat(body: RegenerateRequest, request: Request):
             raise HTTPException(status_code=404, detail="Conversation not found.")
         # Get all messages and find the last user message
         all_messages = db.execute(
-            "SELECT id, role, content FROM messages WHERE conversation_id = ? ORDER BY rowid",
+            "SELECT rowid, id, role, content FROM messages WHERE conversation_id = ? ORDER BY rowid",
             (body.conversation_id,),
         ).fetchall()
         if not all_messages:
@@ -169,18 +169,24 @@ async def regenerate_chat(body: RegenerateRequest, request: Request):
                 break
         if not last_user:
             raise HTTPException(status_code=400, detail="No user message found to regenerate.")
-        # Delete all messages after the last user message
+        # Delete all messages after the last user message by rowid
         db.execute(
-            "DELETE FROM messages WHERE conversation_id = ? AND id > ?",
-            (body.conversation_id, last_user["id"]),
+            "DELETE FROM messages WHERE conversation_id = ? AND rowid > "
+            "(SELECT rowid FROM messages WHERE id = ? AND conversation_id = ?)",
+            (body.conversation_id, last_user["id"], body.conversation_id),
         )
     # Build message list with system prompt
     messages = []
     system_prompt = body.system_prompt
     for row in all_messages:
+        if row["rowid"] > last_user["rowid"]:
+            break
         if row["role"] == "system":
-            system_prompt = row["content"]
-        elif row["id"] <= last_user["id"]:
+            if row["content"].startswith("[SUMMARY]"):
+                messages.append({"role": "system", "content": row["content"]})
+            else:
+                system_prompt = row["content"]
+        else:
             messages.append({"role": row["role"], "content": row["content"]})
     if system_prompt:
         messages.insert(0, {"role": "system", "content": system_prompt})
@@ -250,66 +256,102 @@ async def stream_chat(body: ChatRequest, request: Request):
         if not conversation:
             raise HTTPException(status_code=404, detail="Conversation not found.")
         existing = db.execute(
-            "SELECT id, role, content FROM messages WHERE conversation_id = ? ORDER BY rowid",
+            "SELECT rowid, id, role, content FROM messages WHERE conversation_id = ? ORDER BY rowid",
             (body.conversation_id,),
         ).fetchall()
         current_time = timestamp()
-        db.execute(
-            "INSERT INTO messages (id, conversation_id, role, content, created_at) VALUES (?, ?, 'user', ?, ?)",
-            (str(uuid4()), body.conversation_id, body.message, current_time),
-        )
-        title = (
-            body.message.strip().splitlines()[0][:72]
-            if conversation["title"] == "New conversation"
-            else conversation["title"]
-        )
-        db.execute(
-            "UPDATE conversations SET title = ?, model = ?, updated_at = ? WHERE id = ?",
-            (title or "New conversation", body.model, current_time, body.conversation_id),
-        )
+
+        if body.edit_message_id:
+            target_row = next((r for r in existing if r["id"] == body.edit_message_id), None)
+            if target_row is None:
+                raise HTTPException(status_code=404, detail="Message not found.")
+            db.execute(
+                "UPDATE messages SET content = ?, created_at = ? WHERE id = ? AND conversation_id = ?",
+                (body.message, current_time, body.edit_message_id, body.conversation_id),
+            )
+            db.execute(
+                "DELETE FROM messages WHERE conversation_id = ? AND rowid > "
+                "(SELECT rowid FROM messages WHERE id = ? AND conversation_id = ?)",
+                (body.conversation_id, body.edit_message_id, body.conversation_id),
+            )
+            title = conversation["title"]
+            db.execute(
+                "UPDATE conversations SET model = ?, updated_at = ? WHERE id = ?",
+                (body.model, current_time, body.conversation_id),
+            )
+        elif body.regenerate:
+            last_user = None
+            for msg in reversed(existing):
+                if msg["role"] == "user":
+                    last_user = msg
+                    break
+            if last_user is None:
+                raise HTTPException(status_code=400, detail="No user message found to regenerate.")
+            db.execute(
+                "DELETE FROM messages WHERE conversation_id = ? AND rowid > "
+                "(SELECT rowid FROM messages WHERE id = ? AND conversation_id = ?)",
+                (body.conversation_id, last_user["id"], body.conversation_id),
+            )
+            db.execute(
+                "UPDATE conversations SET model = ?, updated_at = ? WHERE id = ?",
+                (body.model, current_time, body.conversation_id),
+            )
+        else:
+            db.execute(
+                "INSERT INTO messages (id, conversation_id, role, content, created_at) VALUES (?, ?, 'user', ?, ?)",
+                (str(uuid4()), body.conversation_id, body.message, current_time),
+            )
+            title = (
+                body.message.strip().splitlines()[0][:72]
+                if conversation["title"] == "New conversation"
+                else conversation["title"]
+            )
+            db.execute(
+                "UPDATE conversations SET title = ?, model = ?, updated_at = ? WHERE id = ?",
+                (title or "New conversation", body.model, current_time, body.conversation_id),
+            )
+
     # Build message list with system prompt if provided
     messages = []
     system_prompt = body.system_prompt
-    for row in existing:
-        if row["role"] == "system":
-            system_prompt = row["content"]
-        else:
-            messages.append({"role": row["role"], "content": row["content"]})
-    
-    # Add system message if provided
-    if system_prompt:
-        messages.insert(0, {"role": "system", "content": system_prompt})
-    
-    # Handle edit or regenerate
     if body.edit_message_id:
-        # Edit mode: replace the message with edited content
-        messages = []
         for row in existing:
-            if row["id"] == body.edit_message_id:
+            if row["rowid"] > target_row["rowid"]:
+                break
+            if row["role"] == "system":
+                if row["content"].startswith("[SUMMARY]"):
+                    messages.append({"role": "system", "content": row["content"]})
+                else:
+                    system_prompt = row["content"]
+            elif row["id"] == body.edit_message_id:
                 messages.append({"role": row["role"], "content": body.message})
-            elif row["role"] != "system":
+            else:
                 messages.append({"role": row["role"], "content": row["content"]})
     elif body.regenerate:
-        # Regenerate mode: remove last assistant message and re-send last user message
-        user_messages = [msg for msg in messages if msg["role"] == "user"]
-        if user_messages:
-            last_user_msg = user_messages[-1]["content"]
-            # Get all messages up to and including the last user message
-            cutoff_idx = None
-            for i, row in enumerate(existing):
-                if row["role"] == "user" and row["content"] == last_user_msg:
-                    cutoff_idx = i
-            if cutoff_idx is not None:
-                messages = []
-                for row in existing[:cutoff_idx + 1]:
-                    if row["role"] != "system":
-                        messages.append({"role": row["role"], "content": row["content"]})
-            messages.append({"role": "user", "content": last_user_msg})
-        else:
-            messages.append({"role": "user", "content": body.message})
+        for row in existing:
+            if row["rowid"] > last_user["rowid"]:
+                break
+            if row["role"] == "system":
+                if row["content"].startswith("[SUMMARY]"):
+                    messages.append({"role": "system", "content": row["content"]})
+                else:
+                    system_prompt = row["content"]
+            else:
+                messages.append({"role": row["role"], "content": row["content"]})
     else:
+        for row in existing:
+            if row["role"] == "system":
+                if row["content"].startswith("[SUMMARY]"):
+                    messages.append({"role": "system", "content": row["content"]})
+                else:
+                    system_prompt = row["content"]
+            else:
+                messages.append({"role": row["role"], "content": row["content"]})
         messages.append({"role": "user", "content": body.message})
-    
+
+    if system_prompt:
+        messages.insert(0, {"role": "system", "content": system_prompt})
+
     ollama = request.app.state.ollama
 
     async def generate():
@@ -339,28 +381,21 @@ async def stream_chat(body: ChatRequest, request: Request):
             if answer:
                 completed = timestamp()
                 with connect() as db:
-                    if body.edit_message_id:
-                        # Update the edited message
-                        db.execute(
-                            "UPDATE messages SET content = ?, created_at = ? WHERE id = ?",
-                            (answer, completed, body.edit_message_id),
-                        )
-                    else:
-                        db.execute(
-                            """INSERT INTO messages (id, conversation_id, role, content, created_at,
-                            total_duration_ns, prompt_duration_ns, eval_count, eval_duration_ns)
-                            VALUES (?, ?, 'assistant', ?, ?, ?, ?, ?, ?)""",
-                            (
-                                str(uuid4()),
-                                body.conversation_id,
-                                answer,
-                                completed,
-                                stats.get("total_duration"),
-                                stats.get("prompt_eval_duration"),
-                                stats.get("eval_count"),
-                                stats.get("eval_duration"),
-                            ),
-                        )
+                    db.execute(
+                        """INSERT INTO messages (id, conversation_id, role, content, created_at,
+                        total_duration_ns, prompt_duration_ns, eval_count, eval_duration_ns)
+                        VALUES (?, ?, 'assistant', ?, ?, ?, ?, ?, ?)""",
+                        (
+                            str(uuid4()),
+                            body.conversation_id,
+                            answer,
+                            completed,
+                            stats.get("total_duration"),
+                            stats.get("prompt_eval_duration"),
+                            stats.get("eval_count"),
+                            stats.get("eval_duration"),
+                        ),
+                    )
                     db.execute(
                         "UPDATE conversations SET updated_at = ? WHERE id = ?",
                         (completed, body.conversation_id),

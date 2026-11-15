@@ -3,7 +3,9 @@ import os
 from .base import BaseTool
 
 # Default tools directory – can be overridden via env var
-TOOLS_DIR = os.environ.get("NEO_TOOLS_DIR", os.path.expanduser("~"))
+TOOLS_DIR = os.environ.get(
+    "NEO_TOOLS_DIR", os.path.join(os.path.expanduser("~"), "neo-workspace")
+)
 
 
 class FileReadTool(BaseTool):
@@ -22,8 +24,13 @@ class FileReadTool(BaseTool):
             return "Error: No file path provided."
 
         # Security: restrict to TOOLS_DIR
-        target = os.path.realpath(os.path.join(TOOLS_DIR, path))
-        if not target.startswith(os.path.realpath(TOOLS_DIR)):
+        base_dir = os.environ.get("NEO_TOOLS_DIR") or TOOLS_DIR
+        real_tools_dir = os.path.realpath(base_dir)
+        target = os.path.realpath(os.path.join(real_tools_dir, path))
+        try:
+            if os.path.commonpath([real_tools_dir, target]) != real_tools_dir:
+                return "Error: Access denied – path outside allowed directory."
+        except ValueError:
             return "Error: Access denied – path outside allowed directory."
 
         if not os.path.isfile(target):

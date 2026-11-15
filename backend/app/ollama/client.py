@@ -11,7 +11,9 @@ class OllamaUnavailable(Exception):
 class OllamaClient:
     def __init__(self, base_url: str, timeout: float = 10.0) -> None:
         self._client = httpx.AsyncClient(
-            base_url=base_url.rstrip("/"), timeout=httpx.Timeout(timeout, read=300.0)
+            base_url=base_url.rstrip("/"),
+            timeout=httpx.Timeout(timeout, read=300.0),
+            trust_env=False,
         )
 
     async def close(self) -> None:
