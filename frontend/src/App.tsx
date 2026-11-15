@@ -127,7 +127,9 @@ export default function App() {
   const [bookmarksMenu, setBookmarksMenu] = useState(false);
   const [bookmarks, setBookmarks] = useState<BookmarkType[]>([]);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
-  const [overviewStats, setOverviewStats] = useState<OverviewStats | null>(null);
+  const [overviewStats, setOverviewStats] = useState<OverviewStats | null>(
+    null,
+  );
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -194,7 +196,8 @@ export default function App() {
       if (p.status === "fulfilled") {
         setProviders(p.value);
         const configured = p.value.find((pr) => pr.configured);
-        if (configured && activeProvider === "ollama") setActiveProvider(configured.id);
+        if (configured && activeProvider === "ollama")
+          setActiveProvider(configured.id);
       }
       const availableModels = m.status === "fulfilled" ? m.value : [];
       setModels(availableModels);
@@ -216,7 +219,8 @@ export default function App() {
     let alive = true;
     if (activeProvider !== "ollama") {
       setProviderBusy(true);
-      api.providerModels(activeProvider)
+      api
+        .providerModels(activeProvider)
         .then((providerModels) => {
           if (!alive) return;
           setModels(providerModels.map((name) => ({ name })));
@@ -231,7 +235,9 @@ export default function App() {
           setProviderBusy(false);
         });
     }
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [activeProvider]);
   useEffect(() => {
     if (active)
@@ -270,7 +276,9 @@ export default function App() {
 
   useEffect(() => {
     function shortcuts(e: KeyboardEvent) {
-      const inInput = ["INPUT", "TEXTAREA"].includes((e.target as HTMLElement).tagName);
+      const inInput = ["INPUT", "TEXTAREA"].includes(
+        (e.target as HTMLElement).tagName,
+      );
       // Ctrl+N: New conversation
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "n") {
         e.preventDefault();
@@ -287,7 +295,12 @@ export default function App() {
         return;
       }
       // Ctrl+Enter: Send message (when in textarea)
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && inInput && !e.shiftKey) {
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        e.key === "Enter" &&
+        inInput &&
+        !e.shiftKey
+      ) {
         e.preventDefault();
         void sendMessage();
         return;
@@ -309,10 +322,7 @@ export default function App() {
         return;
       }
       // / : Focus search (not in input)
-      if (
-        e.key === "/" &&
-        !inInput
-      ) {
+      if (e.key === "/" && !inInput) {
         e.preventDefault();
         setView("chat");
         setMenuOpen(true);
@@ -424,12 +434,16 @@ export default function App() {
 
   // Check for Speech Recognition support
   useEffect(() => {
-    const supported = !!(window as any).SpeechRecognition || !!(window as any).webkitSpeechRecognition;
+    const supported =
+      !!(window as any).SpeechRecognition ||
+      !!(window as any).webkitSpeechRecognition;
     setIsSpeechSupported(supported);
   }, []);
 
   function handleVoiceInput() {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
     if (isRecording) {
@@ -453,7 +467,9 @@ export default function App() {
       if (event.results[event.results.length - 1].isFinal) {
         setDraft((prev) => {
           const current = prev.trim();
-          return current ? `${current} ${transcript.trim()}` : transcript.trim();
+          return current
+            ? `${current} ${transcript.trim()}`
+            : transcript.trim();
         });
       }
     };
@@ -481,13 +497,15 @@ export default function App() {
 
     // Prepend file contents to the message
     if (uploadedFiles.length > 0) {
-      const fileContents = uploadedFiles.map((f) =>
-        f.file_type === "image"
-          ? `\n\n[Attached image: ${f.filename}]\n${f.content}`
-          : `\n\n[Attached file: ${f.filename}]\n\n\`\`\`
+      const fileContents = uploadedFiles
+        .map((f) =>
+          f.file_type === "image"
+            ? `\n\n[Attached image: ${f.filename}]\n${f.content}`
+            : `\n\n[Attached file: ${f.filename}]\n\n\`\`\`
 ${f.content}
-\`\`\``
-      ).join("\n");
+\`\`\``,
+        )
+        .join("\n");
       content = content
         ? `${content}\n\n${fileContents}`
         : `Please analyze the following attached files:\n\n${fileContents}`;
@@ -549,26 +567,42 @@ ${f.content}
       setPendingUser("");
     }
   }
-  
+
   async function exportConversation(format: string = "markdown") {
     if (!active) return;
     try {
       const result = await api.export(active.id, format);
       const resultAny = result as any;
-      const blob = format === "json"
-        ? new Blob([JSON.stringify({ conversation: resultAny.conversation, messages: resultAny.messages }, null, 2)], { type: "application/json" })
-        : new Blob([resultAny.content], { type: "text/markdown" });
+      const blob =
+        format === "json"
+          ? new Blob(
+              [
+                JSON.stringify(
+                  {
+                    conversation: resultAny.conversation,
+                    messages: resultAny.messages,
+                  },
+                  null,
+                  2,
+                ),
+              ],
+              { type: "application/json" },
+            )
+          : new Blob([resultAny.content], { type: "text/markdown" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = format === "json" ? `${active.title.replace(' ', '_')}.json` : resultAny.filename || `${active.title.replace(' ', '_')}.md`;
+      a.download =
+        format === "json"
+          ? `${active.title.replace(" ", "_")}.json`
+          : resultAny.filename || `${active.title.replace(" ", "_")}.md`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
       setError((e as Error).message);
     }
   }
-  
+
   async function deleteMessage(messageId: string) {
     if (!active) return;
     try {
@@ -578,7 +612,7 @@ ${f.content}
       setError((e as Error).message);
     }
   }
-  
+
   async function loadPresets() {
     try {
       const list = await api.presets();
@@ -688,7 +722,10 @@ ${f.content}
   async function saveSystemPrompt() {
     if (!active) return;
     try {
-      await api.rename(active.id, { title: active.title, system_prompt: systemPrompt || null });
+      await api.rename(active.id, {
+        title: active.title,
+        system_prompt: systemPrompt || null,
+      });
       setActive(await api.conversation(active.id));
       setSettingsOpen(false);
     } catch (e) {
@@ -702,9 +739,10 @@ ${f.content}
     }
   }
 
-  const isConnected = activeProvider === "ollama"
-    ? status?.connected === true
-    : providers.some((pr) => pr.id === activeProvider && pr.configured);
+  const isConnected =
+    activeProvider === "ollama"
+      ? status?.connected === true
+      : providers.some((pr) => pr.id === activeProvider && pr.configured);
 
   return (
     <div className="app-shell">
@@ -781,7 +819,7 @@ ${f.content}
             </button>
           </nav>
           <div className="topbar-right">
-            <div style={{position: "relative"}}>
+            <div style={{ position: "relative" }}>
               <button
                 type="button"
                 className="icon-btn presets-btn"
@@ -802,26 +840,35 @@ ${f.content}
                   ) : (
                     presets.map((p) => (
                       <div key={p.id} className="preset-item">
-                        <div className="preset-item-info" onClick={async () => {
-                          setModel(p.model);
-                          setSystemPrompt(p.system_prompt || "");
-                          setTemperature(p.temperature);
-                          setMaxTokens(p.max_tokens);
-                          setPresetsMenu(false);
-                        }}>
+                        <div
+                          className="preset-item-info"
+                          onClick={async () => {
+                            setModel(p.model);
+                            setSystemPrompt(p.system_prompt || "");
+                            setTemperature(p.temperature);
+                            setMaxTokens(p.max_tokens);
+                            setPresetsMenu(false);
+                          }}
+                        >
                           <div className="preset-item-name">{p.name}</div>
-                          <div className="preset-item-model">{p.model} · {t("temperature")}: {p.temperature} · {t("maxTokens")}: {p.max_tokens}</div>
+                          <div className="preset-item-model">
+                            {p.model} · {t("temperature")}: {p.temperature} ·{" "}
+                            {t("maxTokens")}: {p.max_tokens}
+                          </div>
                         </div>
                         <div className="preset-item-actions">
-                          <button onClick={async (e) => {
-                            e.stopPropagation();
-                            try {
-                              await api.removePreset(p.id);
-                              setPresets(await api.presets());
-                            } catch (err) {
-                              setError((err as Error).message);
-                            }
-                          }} title={t("deletePreset")}>
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                await api.removePreset(p.id);
+                                setPresets(await api.presets());
+                              } catch (err) {
+                                setError((err as Error).message);
+                              }
+                            }}
+                            title={t("deletePreset")}
+                          >
                             <Trash2 size={12} />
                           </button>
                         </div>
@@ -835,22 +882,24 @@ ${f.content}
                       value={presetName}
                       onChange={(e) => setPresetName(e.target.value)}
                     />
-                    <button onClick={async () => {
-                      if (!presetName.trim() || !model) return;
-                      try {
-                        await api.createPreset({
-                          name: presetName.trim(),
-                          model,
-                          system_prompt: systemPrompt || undefined,
-                          temperature,
-                          max_tokens: maxTokens,
-                        });
-                        setPresetName("");
-                        setPresets(await api.presets());
-                      } catch (err) {
-                        setError((err as Error).message);
-                      }
-                    }}>
+                    <button
+                      onClick={async () => {
+                        if (!presetName.trim() || !model) return;
+                        try {
+                          await api.createPreset({
+                            name: presetName.trim(),
+                            model,
+                            system_prompt: systemPrompt || undefined,
+                            temperature,
+                            max_tokens: maxTokens,
+                          });
+                          setPresetName("");
+                          setPresets(await api.presets());
+                        } catch (err) {
+                          setError((err as Error).message);
+                        }
+                      }}
+                    >
                       {t("savePreset")}
                     </button>
                   </div>
@@ -889,7 +938,7 @@ ${f.content}
               ref={fileInput}
               type="file"
               accept=".json"
-              style={{display: "none"}}
+              style={{ display: "none" }}
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
@@ -902,7 +951,10 @@ ${f.content}
                     title: conv.title || "Imported conversation",
                     model: conv.model || null,
                     system_prompt: conv.system_prompt || null,
-                    messages: msgs.map((m: any) => ({ role: m.role, content: m.content })),
+                    messages: msgs.map((m: any) => ({
+                      role: m.role,
+                      content: m.content,
+                    })),
                   });
                   const list = await api.conversations(search);
                   setConversations(list);
@@ -914,7 +966,7 @@ ${f.content}
                 }
               }}
             />
-            <div style={{position: "relative"}}>
+            <div style={{ position: "relative" }}>
               <button
                 type="button"
                 className="icon-btn tags-btn"
@@ -932,28 +984,45 @@ ${f.content}
                   <h4>{t("manageTags")}</h4>
                   {active && (
                     <div className="tags-assign">
-                      <span className="tags-assign-label">{language === "nl" ? "Labels toewijzen:" : "Assign tags:"}</span>
+                      <span className="tags-assign-label">
+                        {language === "nl"
+                          ? "Labels toewijzen:"
+                          : "Assign tags:"}
+                      </span>
                       <div className="tags-assign-list">
                         {tags.map((tag) => {
-                          const isActive = activeTags.some((at) => at.id === tag.id);
+                          const isActive = activeTags.some(
+                            (at) => at.id === tag.id,
+                          );
                           return (
                             <button
                               key={tag.id}
                               className={`tag-chip ${isActive ? "active" : ""}`}
-                              style={{backgroundColor: isActive ? tag.color : 'transparent', border: `1px solid ${tag.color}`}}
+                              style={{
+                                backgroundColor: isActive
+                                  ? tag.color
+                                  : "transparent",
+                                border: `1px solid ${tag.color}`,
+                              }}
                               onClick={async () => {
                                 const newTags = isActive
                                   ? activeTags.filter((at) => at.id !== tag.id)
                                   : [...activeTags, tag];
                                 setActiveTags(newTags);
                                 try {
-                                  await api.setConversationTags(active.id, newTags.map((t) => t.id));
+                                  await api.setConversationTags(
+                                    active.id,
+                                    newTags.map((t) => t.id),
+                                  );
                                 } catch (err) {
                                   setError((err as Error).message);
                                 }
                               }}
                             >
-                              <span className="tag-dot" style={{backgroundColor: tag.color}} />
+                              <span
+                                className="tag-dot"
+                                style={{ backgroundColor: tag.color }}
+                              />
                               {tag.name}
                             </button>
                           );
@@ -974,17 +1043,19 @@ ${f.content}
                       onChange={(e) => setTagColor(e.target.value)}
                       title={language === "nl" ? "Kleur" : "Color"}
                     />
-                    <button onClick={async () => {
-                      if (!tagName.trim()) return;
-                      try {
-                        await api.createTag(tagName.trim(), tagColor);
-                        setTagName("");
-                        setTagColor("#6b7280");
-                        setTags(await api.tags());
-                      } catch (err) {
-                        setError((err as Error).message);
-                      }
-                    }}>
+                    <button
+                      onClick={async () => {
+                        if (!tagName.trim()) return;
+                        try {
+                          await api.createTag(tagName.trim(), tagColor);
+                          setTagName("");
+                          setTagColor("#6b7280");
+                          setTags(await api.tags());
+                        } catch (err) {
+                          setError((err as Error).message);
+                        }
+                      }}
+                    >
                       {t("saveTag")}
                     </button>
                   </div>
@@ -992,22 +1063,34 @@ ${f.content}
                     <div className="tags-list">
                       {tags.map((tag) => (
                         <div key={tag.id} className="tag-item">
-                          <span className="tag-dot" style={{backgroundColor: tag.color}} />
+                          <span
+                            className="tag-dot"
+                            style={{ backgroundColor: tag.color }}
+                          />
                           <span className="tag-name">{tag.name}</span>
-                          <span className="tag-count">{tag.conversation_count || 0}</span>
-                          <button onClick={async () => {
-                            try {
-                              await api.removeTag(tag.id);
-                              setTags(await api.tags());
-                              if (active) {
-                                const newTags = activeTags.filter((at) => at.id !== tag.id);
-                                setActiveTags(newTags);
-                                await api.setConversationTags(active.id, newTags.map((t) => t.id));
+                          <span className="tag-count">
+                            {tag.conversation_count || 0}
+                          </span>
+                          <button
+                            onClick={async () => {
+                              try {
+                                await api.removeTag(tag.id);
+                                setTags(await api.tags());
+                                if (active) {
+                                  const newTags = activeTags.filter(
+                                    (at) => at.id !== tag.id,
+                                  );
+                                  setActiveTags(newTags);
+                                  await api.setConversationTags(
+                                    active.id,
+                                    newTags.map((t) => t.id),
+                                  );
+                                }
+                              } catch (err) {
+                                setError((err as Error).message);
                               }
-                            } catch (err) {
-                              setError((err as Error).message);
-                            }
-                          }}>
+                            }}
+                          >
                             <X size={12} />
                           </button>
                         </div>
@@ -1017,7 +1100,7 @@ ${f.content}
                 </div>
               )}
             </div>
-            <div style={{position: "relative"}}>
+            <div style={{ position: "relative" }}>
               <button
                 type="button"
                 className="icon-btn prompts-btn"
@@ -1039,23 +1122,34 @@ ${f.content}
                     <div className="prompts-list">
                       {quickPrompts.map((p) => (
                         <div key={p.id} className="prompt-item">
-                          <div className="prompt-item-info" onClick={() => {
-                            setDraft(p.prompt);
-                            setPromptsMenu(false);
-                          }}>
+                          <div
+                            className="prompt-item-info"
+                            onClick={() => {
+                              setDraft(p.prompt);
+                              setPromptsMenu(false);
+                            }}
+                          >
                             <div className="prompt-item-title">{p.title}</div>
-                            <div className="prompt-item-preview">{p.prompt.substring(0, 80)}{p.prompt.length > 80 ? '...' : ''}</div>
-                            <span className="prompt-category">{p.category}</span>
+                            <div className="prompt-item-preview">
+                              {p.prompt.substring(0, 80)}
+                              {p.prompt.length > 80 ? "..." : ""}
+                            </div>
+                            <span className="prompt-category">
+                              {p.category}
+                            </span>
                           </div>
-                          <button onClick={async (e) => {
-                            e.stopPropagation();
-                            try {
-                              await api.removeQuickPrompt(p.id);
-                              setQuickPrompts(await api.quickPrompts());
-                            } catch (err) {
-                              setError((err as Error).message);
-                            }
-                          }} title={t("deleteQuickPrompt")}>
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                await api.removeQuickPrompt(p.id);
+                                setQuickPrompts(await api.quickPrompts());
+                              } catch (err) {
+                                setError((err as Error).message);
+                              }
+                            }}
+                            title={t("deleteQuickPrompt")}
+                          >
                             <Trash2 size={12} />
                           </button>
                         </div>
@@ -1081,22 +1175,24 @@ ${f.content}
                       value={promptCategory}
                       onChange={(e) => setPromptCategory(e.target.value)}
                     />
-                    <button onClick={async () => {
-                      if (!promptTitle.trim() || !promptText.trim()) return;
-                      try {
-                        await api.createQuickPrompt({
-                          title: promptTitle.trim(),
-                          prompt: promptText.trim(),
-                          category: promptCategory.trim() || "general",
-                        });
-                        setPromptTitle("");
-                        setPromptText("");
-                        setPromptCategory("");
-                        setQuickPrompts(await api.quickPrompts());
-                      } catch (err) {
-                        setError((err as Error).message);
-                      }
-                    }}>
+                    <button
+                      onClick={async () => {
+                        if (!promptTitle.trim() || !promptText.trim()) return;
+                        try {
+                          await api.createQuickPrompt({
+                            title: promptTitle.trim(),
+                            prompt: promptText.trim(),
+                            category: promptCategory.trim() || "general",
+                          });
+                          setPromptTitle("");
+                          setPromptText("");
+                          setPromptCategory("");
+                          setQuickPrompts(await api.quickPrompts());
+                        } catch (err) {
+                          setError((err as Error).message);
+                        }
+                      }}
+                    >
                       {t("saveQuickPrompt")}
                     </button>
                   </div>
@@ -1126,7 +1222,7 @@ ${f.content}
             >
               <FileText size={16} />
             </button>
-            <div style={{position: "relative"}}>
+            <div style={{ position: "relative" }}>
               <button
                 type="button"
                 className="icon-btn bookmarks-btn"
@@ -1149,11 +1245,15 @@ ${f.content}
                     <div className="bookmarks-list">
                       {bookmarks.map((bm) => (
                         <div key={bm.message_id} className="bookmark-item">
-                          <div className="bookmark-role">{bm.role === "user" ? t("you") : t("assistant")}</div>
+                          <div className="bookmark-role">
+                            {bm.role === "user" ? t("you") : t("assistant")}
+                          </div>
                           <div className="bookmark-content">{bm.content}</div>
                           <button
                             className="bookmark-remove"
-                            onClick={() => void handleRemoveBookmark(bm.message_id)}
+                            onClick={() =>
+                              void handleRemoveBookmark(bm.message_id)
+                            }
                             title={t("unbookmark")}
                           >
                             <X size={12} />
@@ -1221,8 +1321,14 @@ ${f.content}
           onSystemPromptChange={(prompt) => setSystemPrompt(prompt)}
         />
         {statsOpen && active && (
-          <div className="settings-modal-overlay" onClick={() => setStatsOpen(false)}>
-            <div className="settings-modal stats-modal" onClick={e => e.stopPropagation()}>
+          <div
+            className="settings-modal-overlay"
+            onClick={() => setStatsOpen(false)}
+          >
+            <div
+              className="settings-modal stats-modal"
+              onClick={(e) => e.stopPropagation()}
+            >
               <h3>{t("conversationStats")}</h3>
               {convStats ? (
                 <div className="stats-grid">
@@ -1231,7 +1337,9 @@ ${f.content}
                     <div className="stat-label">{t("userMessages")}</div>
                   </div>
                   <div className="stat-card">
-                    <div className="stat-value">{convStats.assistant_messages}</div>
+                    <div className="stat-value">
+                      {convStats.assistant_messages}
+                    </div>
                     <div className="stat-label">{t("assistantMessages")}</div>
                   </div>
                   <div className="stat-card">
@@ -1239,55 +1347,89 @@ ${f.content}
                     <div className="stat-label">{t("totalMessages")}</div>
                   </div>
                   <div className="stat-card">
-                    <div className="stat-value">{convStats.total_tokens.toLocaleString()}</div>
+                    <div className="stat-value">
+                      {convStats.total_tokens.toLocaleString()}
+                    </div>
                     <div className="stat-label">{t("totalTokens")}</div>
                   </div>
                   <div className="stat-card">
-                    <div className="stat-value">{convStats.average_tokens_per_response}</div>
-                    <div className="stat-label">{t("avgTokensPerResponse")}</div>
+                    <div className="stat-value">
+                      {convStats.average_tokens_per_response}
+                    </div>
+                    <div className="stat-label">
+                      {t("avgTokensPerResponse")}
+                    </div>
                   </div>
                   <div className="stat-card">
-                    <div className="stat-value">{convStats.average_speed_tokens_per_second} {t("tokensPerSecond")}</div>
+                    <div className="stat-value">
+                      {convStats.average_speed_tokens_per_second}{" "}
+                      {t("tokensPerSecond")}
+                    </div>
                     <div className="stat-label">{t("avgSpeed")}</div>
                   </div>
-                  <div className="stat-card" style={{gridColumn: "span 2"}}>
-                    <div className="stat-value">{convStats.total_characters.toLocaleString()}</div>
+                  <div className="stat-card" style={{ gridColumn: "span 2" }}>
+                    <div className="stat-value">
+                      {convStats.total_characters.toLocaleString()}
+                    </div>
                     <div className="stat-label">{t("totalCharacters")}</div>
                   </div>
                 </div>
               ) : (
-                <div className="stats-empty">{language === "nl" ? "Geen statistieken beschikbaar" : "No statistics available"}</div>
+                <div className="stats-empty">
+                  {language === "nl"
+                    ? "Geen statistieken beschikbaar"
+                    : "No statistics available"}
+                </div>
               )}
               <div className="settings-actions">
-                <button onClick={() => setStatsOpen(false)}>{language === "nl" ? "Sluiten" : "Close"}</button>
+                <button onClick={() => setStatsOpen(false)}>
+                  {language === "nl" ? "Sluiten" : "Close"}
+                </button>
               </div>
             </div>
           </div>
         )}
         {summaryOpen && active && (
-          <div className="settings-modal-overlay" onClick={() => {
-            if (summarizing) {
-              aborter.current?.abort();
-            }
-            setSummaryOpen(false);
-          }}>
-            <div className="settings-modal summary-modal" onClick={e => e.stopPropagation()}>
+          <div
+            className="settings-modal-overlay"
+            onClick={() => {
+              if (summarizing) {
+                aborter.current?.abort();
+              }
+              setSummaryOpen(false);
+            }}
+          >
+            <div
+              className="settings-modal summary-modal"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="summary-header">
                 <h3>{t("summaryTitle")}</h3>
-                {summarizing && <span className="summarizing-label">{t("summarizing")}</span>}
-                <button className="summary-close" onClick={() => {
-                  if (summarizing) aborter.current?.abort();
-                  setSummaryOpen(false);
-                }}>
+                {summarizing && (
+                  <span className="summarizing-label">{t("summarizing")}</span>
+                )}
+                <button
+                  className="summary-close"
+                  onClick={() => {
+                    if (summarizing) aborter.current?.abort();
+                    setSummaryOpen(false);
+                  }}
+                >
                   <X size={16} />
                 </button>
               </div>
               {summaryText ? (
                 <div className="summary-content">
-                  <MarkdownContent className="markdown-body">{summaryText}</MarkdownContent>
+                  <MarkdownContent className="markdown-body">
+                    {summaryText}
+                  </MarkdownContent>
                 </div>
               ) : !summarizing ? (
-                <div className="summary-empty">{language === "nl" ? "Nog geen samenvatting" : "No summary yet"}</div>
+                <div className="summary-empty">
+                  {language === "nl"
+                    ? "Nog geen samenvatting"
+                    : "No summary yet"}
+                </div>
               ) : null}
             </div>
           </div>
@@ -1382,9 +1524,7 @@ ${f.content}
             uploadedFiles={uploadedFiles}
             uploading={uploading}
             onSendMessage={() =>
-              streaming
-                ? aborter.current?.abort()
-                : void sendMessage()
+              streaming ? aborter.current?.abort() : void sendMessage()
             }
             onDraftChange={(d) => setDraft(d)}
             onKeyDown={keyDown}
@@ -1460,7 +1600,13 @@ ${f.content}
               }
             }}
             onDeleteMessage={(id) => {
-              if (window.confirm(language === "nl" ? "Bericht verwijderen?" : "Delete message?")) {
+              if (
+                window.confirm(
+                  language === "nl"
+                    ? "Bericht verwijderen?"
+                    : "Delete message?",
+                )
+              ) {
                 void deleteMessage(id);
               }
             }}

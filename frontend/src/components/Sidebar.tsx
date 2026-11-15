@@ -8,7 +8,12 @@ import {
   Search,
   Sparkles,
 } from "lucide-react";
-import type { Conversation, Model, OllamaStatus, ProviderStatus } from "../api/client";
+import type {
+  Conversation,
+  Model,
+  OllamaStatus,
+  ProviderStatus,
+} from "../api/client";
 import type { Language, MessageKey } from "../i18n";
 import ConversationItem from "./ConversationItem";
 
@@ -26,7 +31,11 @@ export interface SidebarProps {
   menuOpen: boolean;
   view: string;
   loadingConversations: boolean;
-  overviewStats: { conversations: number; messages: number; total_tokens: number } | null;
+  overviewStats: {
+    conversations: number;
+    messages: number;
+    total_tokens: number;
+  } | null;
   isConnected: boolean;
   t: (key: MessageKey) => string;
   language: Language;
@@ -38,7 +47,10 @@ export interface SidebarProps {
   onFinishRename: (id: string) => void;
   onCancelRename: () => void;
   onRenameTextChange: (text: string) => void;
-  onRenameKeyDown: (id: string, e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onRenameKeyDown: (
+    id: string,
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => void;
   onSearchChange: (value: string) => void;
   onListNav: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onSetView: (view: "chat" | "playground" | "documents" | "code") => void;
@@ -179,9 +191,13 @@ export default function Sidebar({
                     <Braces size={17} />
                   </span>
                   <span className="mega-tile-text">
-                    <b>{language === "nl" ? "Code-uitleg" : "Code explainer"}</b>
+                    <b>
+                      {language === "nl" ? "Code-uitleg" : "Code explainer"}
+                    </b>
                     <small>
-                      {language === "nl" ? "Laat code uitzoeken" : "Explain code"}
+                      {language === "nl"
+                        ? "Laat code uitzoeken"
+                        : "Explain code"}
                     </small>
                   </span>
                 </button>
@@ -241,16 +257,28 @@ export default function Sidebar({
       {overviewStats && (
         <div className="overview-stats">
           <div className="overview-stat">
-            <span className="overview-stat-value">{overviewStats.conversations}</span>
-            <span className="overview-stat-label">{t("conversations").toLowerCase()}</span>
+            <span className="overview-stat-value">
+              {overviewStats.conversations}
+            </span>
+            <span className="overview-stat-label">
+              {t("conversations").toLowerCase()}
+            </span>
           </div>
           <div className="overview-stat">
-            <span className="overview-stat-value">{overviewStats.messages}</span>
-            <span className="overview-stat-label">{language === "nl" ? "berichten" : "messages"}</span>
+            <span className="overview-stat-value">
+              {overviewStats.messages}
+            </span>
+            <span className="overview-stat-label">
+              {language === "nl" ? "berichten" : "messages"}
+            </span>
           </div>
           <div className="overview-stat">
-            <span className="overview-stat-value">{overviewStats.total_tokens.toLocaleString()}</span>
-            <span className="overview-stat-label">{t("tokens").toLowerCase()}</span>
+            <span className="overview-stat-value">
+              {overviewStats.total_tokens.toLocaleString()}
+            </span>
+            <span className="overview-stat-label">
+              {t("tokens").toLowerCase()}
+            </span>
           </div>
         </div>
       )}

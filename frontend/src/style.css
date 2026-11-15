@@ -2782,7 +2782,9 @@ html.motion-ready .welcome h1:not(.is-visible):before {
   color: var(--text-secondary);
   cursor: pointer;
   border-radius: var(--radius-sm);
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
 .icon-btn:hover {
   background: var(--bg-subtle);
@@ -2794,12 +2796,22 @@ html.motion-ready .welcome h1:not(.is-visible):before {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 @keyframes scaleIn {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* ---- Message Actions ---- */
@@ -2823,7 +2835,9 @@ html.motion-ready .welcome h1:not(.is-visible):before {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s, background 0.2s;
+  transition:
+    color 0.2s,
+    background 0.2s;
 }
 .message-action-btn:hover {
   color: var(--text-primary);
@@ -3493,6 +3507,11 @@ html.motion-ready .welcome h1:not(.is-visible):before {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }

@@ -113,9 +113,14 @@ export const api = {
   models: async () =>
     (await request<{ models: Model[] }>("/api/ollama/models")).models,
   providers: async () =>
-    (await request<{ providers: ProviderStatus[] }>("/api/providers")).providers,
+    (await request<{ providers: ProviderStatus[] }>("/api/providers"))
+      .providers,
   providerModels: async (provider: string) =>
-    (await request<{ models: string[] }>(`/api/providers/${encodeURIComponent(provider)}/models`)).models,
+    (
+      await request<{ models: string[] }>(
+        `/api/providers/${encodeURIComponent(provider)}/models`,
+      )
+    ).models,
   conversations: async (search = "") =>
     (
       await request<{ conversations: Conversation[] }>(
@@ -129,7 +134,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ model, system_prompt: systemPrompt }),
     }),
-  rename: (id: string, data: { title: string; system_prompt?: string | null }) =>
+  rename: (
+    id: string,
+    data: { title: string; system_prompt?: string | null },
+  ) =>
     request<Conversation>(`/api/conversations/${id}`, {
       method: "PATCH",
       body: JSON.stringify(data),
@@ -140,20 +148,33 @@ export const api = {
     request<void>(`/api/conversations/${id}/pin`, { method: "POST" }),
   unpin: (id: string) =>
     request<void>(`/api/conversations/${id}/unpin`, { method: "POST" }),
-  importConversation: (data: { title: string; model?: string | null; system_prompt?: string | null; messages?: { role: string; content: string }[] }) =>
+  importConversation: (data: {
+    title: string;
+    model?: string | null;
+    system_prompt?: string | null;
+    messages?: { role: string; content: string }[];
+  }) =>
     request<Conversation>("/api/conversations/import", {
       method: "POST",
       body: JSON.stringify(data),
     }),
   export: (id: string, format: string = "markdown") =>
-    request(`/api/conversations/${id}/export?format=${encodeURIComponent(format)}`),
+    request(
+      `/api/conversations/${id}/export?format=${encodeURIComponent(format)}`,
+    ),
   deleteMessage: (conversationId: string, messageId: string) =>
-    request<void>(`/api/conversations/${conversationId}/messages/${messageId}`, { method: "DELETE" }),
+    request<void>(
+      `/api/conversations/${conversationId}/messages/${messageId}`,
+      { method: "DELETE" },
+    ),
   updateMessage: (conversationId: string, messageId: string, content: string) =>
-    request<Message>(`/api/conversations/${conversationId}/messages/${messageId}`, {
-      method: "PUT",
-      body: JSON.stringify({ content }),
-    }),
+    request<Message>(
+      `/api/conversations/${conversationId}/messages/${messageId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ content }),
+      },
+    ),
   regenerate: async (
     id: string,
     model: string,
@@ -164,7 +185,11 @@ export const api = {
     const response = await fetch("/api/chat/regenerate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversation_id: id, model, system_prompt: systemPrompt }),
+      body: JSON.stringify({
+        conversation_id: id,
+        model,
+        system_prompt: systemPrompt,
+      }),
       signal,
     });
     if (!response.ok) {
@@ -193,12 +218,27 @@ export const api = {
   },
   presets: async () =>
     (await request<{ presets: Preset[] }>("/api/presets")).presets,
-  createPreset: (data: { name: string; model: string; system_prompt?: string; temperature: number; max_tokens: number }) =>
+  createPreset: (data: {
+    name: string;
+    model: string;
+    system_prompt?: string;
+    temperature: number;
+    max_tokens: number;
+  }) =>
     request<Preset>("/api/presets", {
       method: "POST",
       body: JSON.stringify(data),
     }),
-  updatePreset: (id: string, data: Partial<{ name: string; model: string; system_prompt: string | null; temperature: number; max_tokens: number }>) =>
+  updatePreset: (
+    id: string,
+    data: Partial<{
+      name: string;
+      model: string;
+      system_prompt: string | null;
+      temperature: number;
+      max_tokens: number;
+    }>,
+  ) =>
     request<Preset>(`/api/presets/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
@@ -245,7 +285,12 @@ export const api = {
     const response = await fetch("/api/chat/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversation_id: id, model, message, system_prompt: systemPrompt }),
+      body: JSON.stringify({
+        conversation_id: id,
+        model,
+        message,
+        system_prompt: systemPrompt,
+      }),
       signal,
     });
     if (!response.ok) {
@@ -284,7 +329,13 @@ export const api = {
     const response = await fetch("/api/providers/chat/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider, model, messages, temperature, max_tokens: maxTokens }),
+      body: JSON.stringify({
+        provider,
+        model,
+        messages,
+        temperature,
+        max_tokens: maxTokens,
+      }),
       signal,
     });
     if (!response.ok) {
@@ -312,8 +363,7 @@ export const api = {
     }
   },
   // Tags
-  tags: async () =>
-    (await request<{ tags: Tag[] }>("/api/tags")).tags,
+  tags: async () => (await request<{ tags: Tag[] }>("/api/tags")).tags,
   createTag: (name: string, color?: string) =>
     request<Tag>("/api/tags", {
       method: "POST",
@@ -335,17 +385,27 @@ export const api = {
     (await request<{ tags: Tag[] }>(`/api/tags/${conversationId}/tags`)).tags,
   // Quick Prompts
   quickPrompts: async (category?: string) =>
-    (await request<{ prompts: QuickPrompt[] }>(
-      `/api/prompts${category ? `?category=${encodeURIComponent(category)}` : ""}`
-    )).prompts,
+    (
+      await request<{ prompts: QuickPrompt[] }>(
+        `/api/prompts${category ? `?category=${encodeURIComponent(category)}` : ""}`,
+      )
+    ).prompts,
   quickPromptCategories: async () =>
-    (await request<{ categories: string[] }>("/api/prompts/categories")).categories,
-  createQuickPrompt: (data: { title: string; prompt: string; category?: string }) =>
+    (await request<{ categories: string[] }>("/api/prompts/categories"))
+      .categories,
+  createQuickPrompt: (data: {
+    title: string;
+    prompt: string;
+    category?: string;
+  }) =>
     request<QuickPrompt>("/api/prompts", {
       method: "POST",
       body: JSON.stringify({ ...data, category: data.category || "general" }),
     }),
-  updateQuickPrompt: (id: string, data: { title?: string; prompt?: string; category?: string }) =>
+  updateQuickPrompt: (
+    id: string,
+    data: { title?: string; prompt?: string; category?: string },
+  ) =>
     request<QuickPrompt>(`/api/prompts/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
@@ -358,15 +418,25 @@ export const api = {
   overviewStats: () => request<OverviewStats>("/api/stats/overview"),
   // Bookmarks
   bookmarks: async (conversationId: string) =>
-    (await request<{ bookmarks: Bookmark[] }>(`/api/bookmarks/conversations/${conversationId}`)).bookmarks,
+    (
+      await request<{ bookmarks: Bookmark[] }>(
+        `/api/bookmarks/conversations/${conversationId}`,
+      )
+    ).bookmarks,
   bookmarkMessage: (conversationId: string, messageId: string) =>
-    request<{ status: string }>(`/api/bookmarks/conversations/${conversationId}/messages/${messageId}`, {
-      method: "POST",
-    }),
+    request<{ status: string }>(
+      `/api/bookmarks/conversations/${conversationId}/messages/${messageId}`,
+      {
+        method: "POST",
+      },
+    ),
   removeBookmark: (conversationId: string, messageId: string) =>
-    request<{ status: string }>(`/api/bookmarks/conversations/${conversationId}/messages/${messageId}`, {
-      method: "DELETE",
-    }),
+    request<{ status: string }>(
+      `/api/bookmarks/conversations/${conversationId}/messages/${messageId}`,
+      {
+        method: "DELETE",
+      },
+    ),
   // File Upload
   uploadFile: async (file: File) => {
     const formData = new FormData();
